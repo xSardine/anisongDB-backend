@@ -2,7 +2,6 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, validator
-
 from typing import List, Optional, Union
 import get_search_result
 import sql_calls, utils
@@ -43,6 +42,27 @@ class Search_Request(SearchBase):
     composer_search_filter: Optional[Search_Filter] = []
     and_logic: Optional[bool] = True
 
+    class Config:
+        schema_extra = {
+            "example": {
+                "artist_search_filter": {
+                    "search": "Aimer",
+                    "partial_match": False,
+                    "max_other_artist": 0,
+                },
+                "composer_search_filter": {
+                    "search": "hiroyuki sawano",
+                    "partial_match": True,
+                    "arrangement": True,
+                },
+                "and_logic": True,
+                "ignore_duplicate": True,
+                "opening_filter": True,
+                "ending_filter": True,
+                "insert_filter": True,
+            }
+        }
+
     @validator("anime_search_filter", "song_name_search_filter", "artist_search_filter")
     def at_least_one_filter_defined(cls, v, values):
         if v:
@@ -66,14 +86,51 @@ class Artist_ID_Search_Request(SearchBase):
     group_granularity: Optional[int] = Field(2, ge=0)
     max_other_artist: Optional[int] = Field(2, ge=0)
 
+    class Config:
+        schema_extra = {
+            "example": {
+                "artist_ids": [6343],
+                "group_granularity": 2,
+                "max_other_artist": 0,
+                "arrangement": True,
+                "ignore_duplicate": True,
+                "opening_filter": True,
+                "ending_filter": True,
+                "insert_filter": False,
+            }
+        }
+
 
 class Composer_ID_Search_Request(SearchBase):
     composer_ids: List[int] = []
     arrangement: Optional[bool] = True
 
+    class Config:
+        schema_extra = {
+            "example": {
+                "composer_ids": [4469, 4900],
+                "arrangement": True,
+                "ignore_duplicate": True,
+                "opening_filter": True,
+                "ending_filter": True,
+                "insert_filter": False,
+            }
+        }
+
 
 class annId_Search_Request(SearchBase):
     annId: int
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "annId": 14089,
+                "ignore_duplicate": True,
+                "opening_filter": True,
+                "ending_filter": True,
+                "insert_filter": False,
+            }
+        }
 
 
 class Artist(BaseModel):
@@ -113,18 +170,6 @@ class Song_Entry(BaseModel):
     performers: Optional[List[Union[Artist, Group]]]
     composers: Optional[List[Union[Artist, Group]]]
     arrangers: Optional[List[Union[Artist, Group]]]
-
-
-# Launch API
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 def format_artist_ids(artist_database, artist_id, artist_line_up=-1):
@@ -179,6 +224,18 @@ def format_arranger_ids(artist_database, arranger_id):
     arranger["names"] = artist_database[str(arranger_id)]["names"]
 
     return arranger
+
+
+# Launch API
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.post("/api/search_request", response_model=List[Song_Entry])
