@@ -1,0 +1,90 @@
+concrete revolution
+BOOM BOOM SATELLITES, Boom Boom Satellites composer / spellbound
+
+UPDATE songArtist | 9407 Seira Kagami -> 
++ ← 4480
+<CHECK> Keeping Seira Kagami in 4480
+Seira Kagami, 
+
+Non Non Nosshii by Dreaming to Kyouryuu no Kuni no Nakama-tachi
+Dreaming to Kyouryuu no Kuni no Nakama-tachi -> ('Dreaming', 'Kyouryuu no Kuni no Nakama-tachi')
+{'annSongId': 37505, 'songType': 3, 'songNumber': 0, 'songName': 'Non Non Nosshii', 'songArtist': 'Dreaming to Kyouryuu no Kuni no Nakama-tachi', 'links': {'HQ': None, 'MQ': 'https://files.catbox.moe/yboyli.webm', 'audio': 'https://files.catbox.moe/iv6uvc.mp3'}, 'artist_ids': [['1876', 0], ['13752', -1]], 'composer_ids': [], 'arranger_ids': []}
+
+ADD ANIME | 26244 - Aware! Meisaku-kun: Ryuuguuchuu-hen
+Kimi ga Oshite Kureru Nara by Aware! Meisaku-kun
+Aware! Meisaku-kun -> ['Aware! Meisaku-kun']
+{'annSongId': 37497, 'songType': 2, 'songNumber': 1, 'songName': 'Kimi ga Oshite Kureru Nara', 'songArtist': 'Aware! Meisaku-kun', 'links': {'HQ': 'https://files.catbox.moe/ei7vhm.webm', 'MQ': None, 'audio': None}, 'artist_ids': [['13759', -1]], 'composer_ids': [], 'arranger_ids': []}
+
+---------------------
+
+ADD ANIME | 2543 - Soreike! Anpanman: Minna Atsumare! Anpanman World
+Susume! Anpanman-gou by Anpanman to Nakama-tachi
+Anpanman to Nakama-tachi -> ['Anpanman to Nakama-tachi']
+{'annSongId': 37586, 'songType': 3, 'songNumber': 0, 'songName': 'Susume! Anpanman-gou', 'songArtist': 'Anpanman to Nakama-tachi', 'links': {'HQ': None, 'MQ': 'https://files.catbox.moe/hkmibx.webm', 'audio': 'https://files.catbox.moe/38kxyh.mp3'}, 'artist_ids': [['13777', -1]], 'composer_ids': [], 'arranger_ids': []}
+
+ADD ANIME | 25106 - Urusei Yatsura
+Tokyo Shandy Rendezvous by MAISONdes feat. KAF, Tsumiki
+MAISONdes feat. KAF, Tsumiki -> ['MAISONdes', 'KAF', 'Tsumiki']
+{'annSongId': 38034, 'songType': 2, 'songNumber': 1, 'songName': 'Tokyo Shandy Rendezvous', 'songArtist': 'MAISONdes feat. KAF, Tsumiki', 'links': {'HQ': 'https://files.catbox.moe/ka0r62.webm', 'MQ': None, 'audio': None}, 'artist_ids': [['13934', -1], ['7161', -1], ['13935', -1]], 'composer_ids': [], 'arranger_ids': []}
+
+---------------------
+
+My mental choices are completely interfering with my school romantic comedy : UOG Group Shaka by UOG Seinen Gakudan no Minasan
+UOG Seinen Gakudan no Minasan -> ['UOG Seinen Gakudan no Minasan']
+{'annSongId': 38339, 'songType': 3, 'songNumber': 0, 'songName': 'UOG Group Shaka', 'songArtist': 'UOG Seinen Gakudan no Minasan', 'links': {'HQ': None, 'MQ': None, 'audio': None}, 'artist_ids': [['16634', -1]], 'composer_ids': [], 'arranger_ids': []}
+
+Ani × Para: Anata no Hero wa Dare Desu ka : Hyakusetsu-futou by Hatsune Miku×CONDENSE
+Hatsune Miku×CONDENSE -> ['Hatsune Miku', 'CONDENSE']
+{'annSongId': 38373, 'songType': 3, 'songNumber': 0, 'songName': 'Hyakusetsu-futou', 'songArtist': 'Hatsune Miku×CONDENSE', 'links': {'HQ': 'https://files.catbox.moe/4nk8l2.webm', 'MQ': None, 'audio': None}, 'artist_ids': [['4753', 0], ['16653', -1]], 'composer_ids': [], 'arranger_ids': []}
+
+1 more night by ravex feat. MONKEY MAJIK
+ravex feat. MONKEY MAJIK -> ['ravex', 'MONKEY MAJIK']
+{'annSongId': 38631, 'songType': 3, 'songNumber': 0, 'songName': '1 more night', 'songArtist': 'ravex feat. MONKEY MAJIK', 'links': {'HQ': None, 'MQ': 'https://files.catbox.moe/qx8y4q.webm', 'audio': None}, 'artist_ids': [['16837', -1], ['4963', -1]], 'composer_ids': [], 'arranger_ids': []}
+
+______________________________________________________________
+
+UPDATE songArtist | 16674 ROOTS66 Party with Matsuno 6 Kyoudai -> ROOTS66 Party with Matsuno-ke 6 Kyoudai
++Matsuno-ke 6 Kyoudai ← 7149
+<CHECK> Keeping Matsuno 6 Kyoudai in 7149
+Matsuno 6 Kyoudai, Matsuno-ke 6 Kyoudai
+
+______________________________________________________________
+
+UPDATE songArtist | 9896 Inazuma All-Stars -> Inazuma All Stars
+UPDATE songArtist | 12380 Inazuma Eleven GO All-Stars -> Inazuma Eleven GO All Stars
+UPDATE songArtist | 24324 i-dep feat. Minami Fujioka (PANDA ½) -> i-dep feat. Minami Fujioka (PANDA 1/2)
+FUZI \u00d7 Neru (feat. Luschka & Panaman)
+
+ANNA TSUCHIYA
+Noramimi with Noramimi All Stars
+______________________________________________________________
+
+UPDATE songArtist | 37731 Toshiyuki Takahashi -> Takahashi Meijin
+-Toshiyuki Takahashi ← 13809
+Takahashi-meijin, Takahashi Meijin
+
+Banana Dance by Taku Izumi to Sono Family
+Taku Izumi to Sono Family -> ('Taku Izumi', 'Sono Family')
+{'annSongId': 39644, 'songType': 3, 'songNumber': 0, 'songName': 'Banana Dance', 'songArtist': 'Taku Izumi to Sono Family', 'links': {'HQ': None, 'MQ': None, 'audio': None}, 'artist_ids': [['11703', -1], ['17529', -1]], 'composer_ids': [], 'arranger_ids': []}
+
+AOP
+
+ADD ANIME | 25473 - Opus.COLORs
+SHINY by UraShimaSakataSen
+UraShimaSakataSen -> ['UraShimaSakataSen']
+{'annSongId': 39182, 'songType': 1, 'songNumber': 1, 'songName': 'SHINY', 'songArtist': 'UraShimaSakataSen', 'links': {'HQ': 'https://files.catbox.moe/olcsml.webm', 'MQ': None, 'audio': None}, 'artist_ids': [['7064', -1]], 'composer_ids': [], 'arranger_ids': []}
+
+EXILE TRIBE
+
+
+Totsugeki! Pappara-tai : Shitto Mask no Theme by The Papparas
+The Papparas -> ['The Papparas']
+{'annSongId': 39781, 'songType': 3, 'songNumber': 0, 'songName': 'Shitto Mask no Theme', 'songArtist': 'The Papparas', 'links': {'HQ': None, 'MQ': 'https://files.catbox.moe/p6s1id.webm', 'audio': None}, 'artist_ids': [['17674', -1]], 'composer_ids': [], 'arranger_ids': []}
+
+Soreike! Anpanman: Dokin-chan no Dokidoki Calendar : Anpanman Ondo '89 by Dreaming & Anpanman Gasshou-dan
+Dreaming & Anpanman Gasshou-dan -> ['Dreaming', 'Anpanman Gasshou-dan']
+{'annSongId': 39790, 'songType': 3, 'songNumber': 0, 'songName': "Anpanman Ondo '89", 'songArtist': 'Dreaming & Anpanman Gasshou-dan', 'links': {'HQ': None, 'MQ': 'https://files.catbox.moe/0au7r0.webm', 'audio': 'https://files.catbox.moe/s3kz8b.mp3'}, 'artist_ids': [['1876', 0], ['17685', -1]], 'composer_ids': [], 'arranger_ids': []}
+
+
+______________________________________________________________
+
