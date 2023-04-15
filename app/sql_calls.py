@@ -311,12 +311,6 @@ def get_artist_names_from_artist_id(cursor, artist_id):
     return result
 
 
-def get_artist_line_ups(cursor, artist_id):
-
-    command = f"SELECT * FROM artistsLineUps WHERE id = {artist_id}"
-    return run_sql_command(cursor, command)
-
-
 def get_artist_groups(cursor, artist_id):
 
     command = f"SELECT * FROM artistsGroups WHERE id = {artist_id}"

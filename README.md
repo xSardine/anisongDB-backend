@@ -1,6 +1,8 @@
 # Back End
 
- An anisong database with better artists links and search functions
+> Work In Progress
+
+Future database of https://anisongdb.com with a complete database structure overhaul to fix the limits current one is facing.
 
 Build with FastAPI: <https://fastapi.tiangolo.com/>
 

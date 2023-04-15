@@ -2,7 +2,7 @@
 commands.txt
 randomScripts/
 *.json
-app/data/Enhanced-AMQ-Database.db
+app/data/Enhanced-AMQ-Database.sqlite
 app/data/back-up/
 app/data/old/
 

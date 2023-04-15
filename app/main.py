@@ -1,8 +1,9 @@
 from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from pydantic import BaseModel, Field, validator
+
+from typing import List, Optional, Union
 import get_search_result
 import sql_calls, utils
 from random import randrange
@@ -23,111 +24,87 @@ class Search_Filter(BaseModel):
     # for composer search
     arrangement: Optional[bool] = True
 
-    class Config:
-        # This will search for every fripSide song, as well as every Yoshino Nanjo song with not more than 2 other artists
-        schema_extra = {
-            "example": {
-                "search": "fripSide",
-                "partial_match": True,
-                "group_granularity": 1,
-                "max_other_artist": 2,
-            }
-        }
+
+class SearchBase(BaseModel):
+    ignore_duplicate: Optional[bool] = False
+    opening_filter: Optional[bool] = True
+    ending_filter: Optional[bool] = True
+    insert_filter: Optional[bool] = True
 
 
-class Search_Request(BaseModel):
-
+class Search_Request(SearchBase):
     anime_search_filter: Optional[Search_Filter] = []
     song_name_search_filter: Optional[Search_Filter] = []
     artist_search_filter: Optional[Search_Filter] = []
     composer_search_filter: Optional[Search_Filter] = []
     and_logic: Optional[bool] = True
-    ignore_duplicate: Optional[bool] = False
-    opening_filter: Optional[bool] = True
-    ending_filter: Optional[bool] = True
-    insert_filter: Optional[bool] = True
 
-    class Config:
-        schema_extra = {
-            "example": {
-                "anime_search_filter": {
-                    "search": "White Album",
-                    "ignore_special_character": True,
-                    "partial_match": True,
-                    "max_artist_per_songs": 99,
-                },
-                "artist_search_filter": {
-                    "search": "Madoka Yonezawa",
-                    "ignore_special_character": True,
-                    "partial_match": True,
-                    "max_artist_per_songs": 99,
-                },
-            }
-        }
+    @validator("anime_search_filter", "song_name_search_filter", "artist_search_filter")
+    def at_least_one_filter_defined(cls, v, values):
+        if v:
+            return v
+        if not any(
+            values.get(other_field)
+            for other_field in (
+                "anime_search_filter",
+                "song_name_search_filter",
+                "artist_search_filter",
+            )
+        ):
+            raise ValueError(
+                f"At least one of 'anime_search_filter', 'song_name_search_filter', or 'artist_search_filter' must be defined"
+            )
+        return v
 
 
-class Artist_ID_Search_Request(BaseModel):
-
+class Artist_ID_Search_Request(SearchBase):
     artist_ids: List[int] = []
     group_granularity: Optional[int] = Field(2, ge=0)
     max_other_artist: Optional[int] = Field(2, ge=0)
-    ignore_duplicate: Optional[bool] = False
-    opening_filter: Optional[bool] = True
-    ending_filter: Optional[bool] = True
-    insert_filter: Optional[bool] = True
 
 
-class Composer_ID_Search_Request(BaseModel):
-
+class Composer_ID_Search_Request(SearchBase):
     composer_ids: List[int] = []
     arrangement: Optional[bool] = True
-    ignore_duplicate: Optional[bool] = False
-    opening_filter: Optional[bool] = True
-    ending_filter: Optional[bool] = True
-    insert_filter: Optional[bool] = True
 
 
-class annId_Search_Request(BaseModel):
-
+class annId_Search_Request(SearchBase):
     annId: int
-    ignore_duplicate: Optional[bool] = False
-    opening_filter: Optional[bool] = True
-    ending_filter: Optional[bool] = True
-    insert_filter: Optional[bool] = True
 
 
-class artist(BaseModel):
-
+class Artist(BaseModel):
     id: int
     names: List[str]
-    line_up_id: Optional[int]
-    groups: Optional[List[artist]]
-    members: Optional[List[artist]]
+    groups: List["Group"]
 
 
-artist.update_forward_refs()
+class Group(BaseModel):
+    id: int
+    names: List[str]
+    groups: List["Group"]
+    members: List[Union[Artist, "Group"]]
 
 
 class Song_Entry(BaseModel):
-
     annId: int
     annSongId: int
     animeENName: str
     animeJPName: str
-    animeAltName: Optional[List[str]]
-    animeVintage: Optional[str]
-    animeType: Optional[str]
+    animeAltName: List[str]
+    animeVintage: str
+    animeType: str
     songType: str
     songName: str
     songArtist: str
-    songDifficulty: Optional[float]
-    songCategory: Optional[str]
-    HQ: Optional[str]
-    MQ: Optional[str]
-    audio: Optional[str]
-    artists: List[artist]
-    composers: List[artist]
-    arrangers: List[artist]
+    songDifficulty: float
+    songCategory: str
+    HQ: str
+    MQ: str
+    audio: str
+    vocals: List[Union[Artist, Group]]
+    performers: List[Union[Artist, Group]]
+    composers: List[Union[Artist, Group]]
+    arrangers: List[Union[Artist, Group]]
 
 
 # Launch API
@@ -229,7 +206,7 @@ async def get_50_random_songs():
 
     cursor = sql_calls.connect_to_database(sql_calls.database_path)
 
-    songIds = [randrange(28000) for i in range(50)]
+    songIds = [randrange(39000) for _ in range(50)]
 
     artist_database = sql_calls.extract_artist_database()
 

@@ -6,9 +6,10 @@ import sqlite3
 import json
 from pathlib import Path
 
-database = Path("../app/data/Enhanced-AMQ-Database.db")
-nerfedDatabase = Path("../app/data/Enhanced-AMQ-Database-Nerfed.db")
+database = Path("../app/data/Enhanced-AMQ-Database.sqlite")
+nerfedDatabase = Path("../app/data/Enhanced-AMQ-Database-Nerfed.sqlite")
 song_database_path = Path("../app/data/song_database.json")
+group_database_path = Path("../app/data/song_database.json")
 artist_database_path = Path("../app/data/artist_database.json")
 
 with open(song_database_path, encoding="utf-8") as json_file:
@@ -17,25 +18,20 @@ with open(artist_database_path, encoding="utf-8") as json_file:
     artist_database = json.load(json_file)
 
 
-RESET_DB_SQL = """
-PRAGMA foreign_keys = 0;
+RESET_DB_SQL = """PRAGMA foreign_keys = 0;
 DROP TABLE IF EXISTS animes;
 DROP TABLE IF EXISTS artist_names;
 DROP TABLE IF EXISTS artists;
-DROP TABLE IF EXISTS groups;
-DROP TABLE IF EXISTS link_artist_group;
-DROP TABLE IF EXISTS link_song_arranger;
+DROP TABLE IF EXISTS line_ups;
+DROP TABLE IF EXISTS link_artist_line_up;
 DROP TABLE IF EXISTS link_song_artist;
-DROP TABLE IF EXISTS link_song_composer;
 DROP TABLE IF EXISTS link_anime_genre;
 DROP TABLE IF EXISTS link_anime_tag;
 DROP TABLE IF EXISTS link_anime_altNames;
 DROP TABLE IF EXISTS songs;
 DROP VIEW IF EXISTS artistsNames;
 DROP VIEW IF EXISTS artistsMembers;
-DROP VIEW IF EXISTS artistsLineUps;
 DROP VIEW IF EXISTS artistsGroups;
-DROP VIEW IF EXISTS artistsFull;
 DROP VIEW IF EXISTS animesFull;
 DROP VIEW IF EXISTS songsAnimes;
 DROP VIEW IF EXISTS songsArtists;
@@ -74,15 +70,17 @@ CREATE TABLE songs (
 CREATE TABLE artists (
     "id" INTEGER NOT NULL PRIMARY KEY,
     "vocalist" BIT NOT NULL,
+    "performer" BIT NOT NULL,
     "composer" BIT NOT NULL
 );
 
-CREATE TABLE groups (
+CREATE TABLE line_ups (
     "artist_id" INTEGER NOT NULL,
+    "line_up_type" TEXT CHECK(line_up_type IN ('vocals', 'performers', 'composers', 'arrangers')) NOT NULL,
     "line_up_id" INTEGER NOT NULL,
     FOREIGN KEY ("artist_id")
         REFERENCES artists ("id"),
-    PRIMARY KEY (artist_id, line_up_id)
+    PRIMARY KEY (artist_id, line_up_type, line_up_id)
 );
 
 CREATE TABLE artist_names (
@@ -97,52 +95,38 @@ CREATE TABLE artist_names (
 CREATE TABLE link_song_artist (
     "song_id" INTEGER NOT NULL,
     "artist_id" INTEGER NOT NULL,
+    "artist_line_up_type" TEXT CHECK(artist_line_up_type IN ('vocals', 'performers', 'composers', 'arrangers')) NOT NULL,
     "artist_line_up_id" INTEGER NOT NULL,
     FOREIGN KEY ("song_id")
         REFERENCES songs ("id"),
     FOREIGN KEY ("artist_id")
         REFERENCES artists ("id"),
     FOREIGN KEY ("artist_line_up_id")
-        REFERENCES groups ("line_up_id"),
-    PRIMARY KEY (song_id, artist_id, artist_line_up_id)
+        REFERENCES line_ups ("line_up_id"),
+    PRIMARY KEY (song_id, artist_id, artist_line_up_type, artist_line_up_id)
 );
 
-CREATE TABLE link_song_composer (
-    "song_id" INTEGER NOT NULL,
-    "composer_id" INTEGER NOT NULL,
-    FOREIGN KEY ("song_id")
-        REFERENCES songs ("id"),
-    FOREIGN KEY ("composer_id")
-        REFERENCES artists ("id"),
-    PRIMARY KEY (song_id, composer_id)
-);
-
-CREATE TABLE link_song_arranger (
-    "song_id" INTEGER NOT NULL,
-    "arranger_id" INTEGER NOT NULL,
-    FOREIGN KEY ("song_id")
-        REFERENCES songs ("id"),
-    FOREIGN KEY ("arranger_id")
-        REFERENCES artists ("id"),
-    PRIMARY KEY (song_id, arranger_id)
-);
-
-create TABLE link_artist_group (
+create TABLE link_artist_line_up (
+    "artist_id" INTEGER NOT NULL,
+    "artist_line_up_type" TEXT CHECK(artist_line_up_type IN ('vocals', 'performers', 'composers', 'arrangers')) NOT NULL,
+    "artist_line_up_id" INTEGER NOT NULL,
     "group_id" INTEGER NOT NULL,
+    "group_line_up_type" TEXT CHECK(group_line_up_type IN ('vocals', 'performers', 'composers', 'arrangers')) NOT NULL,
     "group_line_up_id" INTEGER NOT NULL,
-    "member_id" INTEGER NOT NULL,
-    "member_line_up_id" INTEGER NOT NULL,
-    FOREIGN KEY ("member_id")
+    FOREIGN KEY ("artist_id")
         REFERENCES artists ("id"),
-    FOREIGN KEY ("member_line_up_id")
-        REFERENCES groups ("line_up_id"),
+    FOREIGN KEY ("artist_line_up_type")
+        REFERENCES line_ups ("line_up_type"),
+    FOREIGN KEY ("artist_line_up_id")
+        REFERENCES line_ups ("line_up_id"),
     FOREIGN KEY ("group_id")
-        REFERENCES artists ("artist_id"),
+        REFERENCES line_ups ("artist_id"),
+    FOREIGN KEY ("group_line_up_type")
+        REFERENCES line_ups ("line_up_type"),
     FOREIGN KEY ("group_line_up_id")
-        REFERENCES groups ("line_up_id"),
-    PRIMARY KEY (group_id, group_line_up_id, member_id, member_line_up_id)
+        REFERENCES line_ups ("line_up_id"),
+    PRIMARY KEY (artist_id, artist_line_up_type, artist_line_up_id, group_id, group_line_up_type, group_line_up_id)
 );
-
 
 create TABLE link_anime_genre (
     "annId" INTEGER NOT NULL,
@@ -151,7 +135,6 @@ create TABLE link_anime_genre (
         REFERENCES animes ("annId"),
     PRIMARY KEY (annId, genre)
 );
-
 
 create TABLE link_anime_tag (
     "annId" INTEGER NOT NULL,
@@ -169,297 +152,148 @@ create TABLE link_anime_altNames (
     PRIMARY KEY (annId, name)
 );
 
-CREATE VIEW artistsNames AS 
-SELECT orderedNames.inserted_order, artists.id, group_concat(orderedNames.name, "\$") AS names, artists.vocalist, artists.composer
-FROM artists
-LEFT JOIN (SELECT * FROM artist_names ORDER BY artist_names.inserted_order) AS orderedNames
-ON artists.id = orderedNames.artist_id
-GROUP BY artists.id;
 
-CREATE VIEW artistsMembers AS 
-SELECT artists.id, group_concat(link_artist_group.member_id) AS members, group_concat(link_artist_group.member_line_up_id) as members_line_up 
-FROM artists
-LEFT JOIN link_artist_group ON artists.id = link_artist_group.group_id 
-GROUP BY artists.id;
+CREATE VIEW 
+    artistsNames AS 
+SELECT 
+    orderedNames.inserted_order, 
+    artists.id, 
+    group_concat(orderedNames.name, "\$") AS names, 
+    artists.vocalist, 
+    artists.performer, 
+    artists.composer
+FROM 
+    artists
+LEFT JOIN 
+    (SELECT * FROM artist_names ORDER BY artist_names.inserted_order) AS orderedNames
+ON artists.id = 
+    orderedNames.artist_id
+GROUP BY 
+    artists.id;
 
-CREATE VIEW artistsGroups AS 
-SELECT artists.id, group_concat(link_artist_group.group_id) AS groups, group_concat(link_artist_group.group_line_up_id) as groups_line_up 
-FROM artists 
-LEFT JOIN link_artist_group ON artists.id = link_artist_group.member_id 
-GROUP BY artists.id;
+CREATE VIEW 
+    artistsMembers AS 
+SELECT 
+    artists.id, 
+    link_artist_line_up.artist_line_up_type, 
+    group_concat(link_artist_line_up.artist_id) AS members, 
+    group_concat(link_artist_line_up.artist_line_up_id) as members_line_up 
+FROM 
+    artists
+LEFT JOIN 
+    link_artist_line_up ON artists.id = link_artist_line_up.group_id 
+GROUP BY 
+    artists.id, 
+    link_artist_line_up.artist_line_up_type;
 
-CREATE VIEW artistsLineUps AS 
-SELECT artists.id, artistsNames.names, link_artist_group.group_line_up_id, group_concat(link_artist_group.member_id) AS members, group_concat(link_artist_group.member_line_up_id) as members_line_up 
-FROM artists 
-LEFT JOIN link_artist_group ON artists.id = link_artist_group.group_id
-LEFT JOIN artistsNames ON artists.id = artistsNames.id
-GROUP BY artists.id, link_artist_group.group_line_up_id;
+CREATE VIEW 
+    artistsGroups AS 
+SELECT 
+    artists.id,
+    link_artist_line_up.group_line_up_type,
+    group_concat(link_artist_line_up.group_id) AS groups,
+    group_concat(link_artist_line_up.group_line_up_id) as groups_line_up
+FROM 
+    artists 
+LEFT JOIN 
+    link_artist_line_up ON artists.id = link_artist_line_up.artist_id 
+GROUP BY 
+    artists.id,
+    link_artist_line_up.group_line_up_type;
 
-CREATE VIEW artistsFull AS
-SELECT artistsNames.id, artistsNames.names, artistsNames.vocalist, artistsNames.composer, artistsMembers.members, artistsMembers.members_line_up, artistsGroups.groups, artistsGroups.groups_line_up
-FROM artistsNames
-INNER JOIN artistsMembers ON artistsNames.id = artistsMembers.id
-INNER JOIN artistsGroups ON artistsNames.id = artistsGroups.id;
+CREATE VIEW 
+    animesFull AS
+SELECT 
+    animes.annId, 
+    animes.animeExpandName, 
+    animes.animeJPName, 
+    animes.animeENName, 
+    group_concat(link_anime_altNames.name, "\$") AS altNames, 
+    animes.animeType, 
+    animes.animeVintage
+FROM 
+    animes
+LEFT JOIN 
+    link_anime_altNames ON animes.annId = link_anime_altNames.annId
+GROUP BY 
+    animes.annId;
 
-CREATE VIEW animesFull AS
-SELECT animes.annId, animes.animeExpandName, animes.animeJPName, animes.animeENName, group_concat(link_anime_altNames.name, "\$") AS altNames, animes.animeType, animes.animeVintage
-FROM animes
-LEFT JOIN link_anime_altNames
-ON animes.annId = link_anime_altNames.annId
-GROUP BY animes.annId;
+CREATE VIEW 
+    songsAnimes AS
+SELECT 
+    animesFull.annId, 
+    animesFull.animeExpandName, 
+    animesFull.animeJPName, 
+    animesFull.animeENName, 
+    animesFull.altNames, 
+    animesFull.animeVintage, 
+    animesFull.animeType, 
+    songs.id as songId, 
+    songs.annSongId, 
+    songs.songType, 
+    songs.songNumber, 
+    songs.songName, 
+    songs.songArtist, 
+    songs.songDifficulty, 
+    songs.songCategory, 
+    songs.HQ, 
+    songs.MQ, 
+    songs.audio
+FROM 
+    animesFull
+LEFT JOIN 
+    songs ON animesFull.annId = songs.annId;
 
-CREATE VIEW songsAnimes AS
-SELECT animesFull.annId, animesFull.animeExpandName, animesFull.animeJPName, animesFull.animeENName, animesFull.altNames, animesFull.animeVintage, animesFull.animeType, 
-songs.id as songId, songs.annSongId, songs.songType, songs.songNumber, songs.songName, songs.songArtist, songs.songDifficulty, songs.songCategory, songs.HQ, songs.MQ, songs.audio
-FROM animesFull
-LEFT JOIN songs ON animesFull.annId = songs.annId;
+CREATE VIEW 
+    songsArtists AS
+SELECT 
+    songs.id as songId, 
+    group_concat(link_song_artist.artist_id) AS artists,
+    link_song_artist.artist_line_up_type,
+    group_concat(link_song_artist.artist_line_up_id) AS artist_line_up_id
+FROM 
+    songs 
+LEFT JOIN 
+    link_song_artist ON songs.id = link_song_artist.song_id
+GROUP BY 
+    songs.id,
+    link_song_artist.artist_line_up_type;
 
-CREATE VIEW songsArtists AS
-SELECT songs.id as songId, group_concat(link_song_artist.artist_id) AS artists, group_concat(link_song_artist.artist_line_up_id) AS artists_line_up
-FROM songs 
-LEFT JOIN link_song_artist ON songs.id = link_song_artist.song_id
-GROUP BY songs.id;
-
-CREATE VIEW songsComposers AS
-SELECT songs.id as songId, group_concat(link_song_composer.composer_id) AS composers
-FROM songs
-LEFT JOIN link_song_composer ON songs.id = link_song_composer.song_id
-GROUP BY songs.id;
-
-CREATE VIEW songsArrangers AS
-SELECT songs.id as songId, group_concat(link_song_arranger.arranger_id) AS arrangers
-FROM songs
-LEFT JOIN link_song_arranger ON songs.id = link_song_arranger.song_id
-GROUP BY songs.id;
-
-CREATE VIEW songsFull AS
-SELECT songsAnimes.annId, songsAnimes.animeExpandName, songsAnimes.animeJPName, songsAnimes.animeENName, songsAnimes.altNames, songsAnimes.animeVintage, songsAnimes.animeType, 
-songsAnimes.songId, songsAnimes.annSongId, songsAnimes.songType, songsAnimes.songNumber, songsAnimes.songName, songsAnimes.songArtist, songsArtists.artists, songsArtists.artists_line_up, songsComposers.composers, songsArrangers.arrangers, songsAnimes.songDifficulty, songsAnimes.songCategory, songsAnimes.HQ, songsAnimes.MQ, songsAnimes.audio
-FROM songsAnimes
-INNER JOIN songsArtists ON songsAnimes.songId = songsArtists.songId
-INNER JOIN songsComposers ON songsAnimes.songId = songsComposers.songId
-INNER JOIN songsArrangers ON songsAnimes.songId = songsArrangers.songId;
-"""
-
-RESET_DB_SQL_NERFED = """
-PRAGMA foreign_keys = 0;
-DROP TABLE IF EXISTS animes;
-DROP TABLE IF EXISTS artist_names;
-DROP TABLE IF EXISTS artists;
-DROP TABLE IF EXISTS groups;
-DROP TABLE IF EXISTS link_artist_group;
-DROP TABLE IF EXISTS link_song_arranger;
-DROP TABLE IF EXISTS link_song_artist;
-DROP TABLE IF EXISTS link_song_composer;
-DROP TABLE IF EXISTS link_anime_genre;
-DROP TABLE IF EXISTS link_anime_tag;
-DROP TABLE IF EXISTS link_anime_altNames;
-DROP TABLE IF EXISTS songs;
-DROP VIEW IF EXISTS artistsNames;
-DROP VIEW IF EXISTS artistsMembers;
-DROP VIEW IF EXISTS artistsLineUps;
-DROP VIEW IF EXISTS artistsGroups;
-DROP VIEW IF EXISTS artistsFull;
-DROP VIEW IF EXISTS animesFull;
-DROP VIEW IF EXISTS songsAnimes;
-DROP VIEW IF EXISTS songsArtists;
-DROP VIEW IF EXISTS songsComposers;
-DROP VIEW IF EXISTS songsArrangers;
-DROP VIEW IF EXISTS songsFull;
-
-PRAGMA foreign_keys = 1;
-
-CREATE TABLE animes (
-    "annId" INTEGER NOT NULL PRIMARY KEY,
-    "animeExpandName" VARCHAR(255) NOT NULL, 
-    "animeENName" VARCHAR(255),
-    "animeJPName" VARCHAR(255),
-    "animeVintage" VARCHAR(255),
-    "animeType" VARCHAR(255)
-);
-
-CREATE TABLE songs (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
-    "annSongId" INTEGER,
-    "annId" INTEGER NOT NULL,
-    "songType" INTEGER NOT NULL,
-    "songNumber" INTEGER NOT NULL,
-    "songName" VARCHAR(255) NOT NULL,
-    "songArtist" VARCHAR(255) NOT NULL,
-    "songDifficulty" FLOAT,
-    "songCategory" VARCHAR(255),
-    FOREIGN KEY ("annId")
-        REFERENCES animes ("annId")
-);
-
-CREATE TABLE artists (
-    "id" INTEGER NOT NULL PRIMARY KEY,
-    "vocalist" BIT NOT NULL,
-    "composer" BIT NOT NULL
-);
-
-CREATE TABLE groups (
-    "artist_id" INTEGER NOT NULL,
-    "line_up_id" INTEGER NOT NULL,
-    FOREIGN KEY ("artist_id")
-        REFERENCES artists ("id"),
-    PRIMARY KEY (artist_id, line_up_id)
-);
-
-CREATE TABLE artist_names (
-    "inserted_order" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
-    "artist_id" INTEGER NOT NULL,
-    "name" VARCHAR(255) NOT NULL,
-    FOREIGN KEY ("artist_id")
-        REFERENCES artist ("id"),
-    UNIQUE (artist_id, name)
-);
-
-CREATE TABLE link_song_artist (
-    "song_id" INTEGER NOT NULL,
-    "artist_id" INTEGER NOT NULL,
-    "artist_line_up_id" INTEGER NOT NULL,
-    FOREIGN KEY ("song_id")
-        REFERENCES songs ("id"),
-    FOREIGN KEY ("artist_id")
-        REFERENCES artists ("id"),
-    FOREIGN KEY ("artist_line_up_id")
-        REFERENCES groups ("line_up_id"),
-    PRIMARY KEY (song_id, artist_id, artist_line_up_id)
-);
-
-CREATE TABLE link_song_composer (
-    "song_id" INTEGER NOT NULL,
-    "composer_id" INTEGER NOT NULL,
-    FOREIGN KEY ("song_id")
-        REFERENCES songs ("id"),
-    FOREIGN KEY ("composer_id")
-        REFERENCES artists ("id"),
-    PRIMARY KEY (song_id, composer_id)
-);
-
-CREATE TABLE link_song_arranger (
-    "song_id" INTEGER NOT NULL,
-    "arranger_id" INTEGER NOT NULL,
-    FOREIGN KEY ("song_id")
-        REFERENCES songs ("id"),
-    FOREIGN KEY ("arranger_id")
-        REFERENCES artists ("id"),
-    PRIMARY KEY (song_id, arranger_id)
-);
-
-create TABLE link_artist_group (
-    "group_id" INTEGER NOT NULL,
-    "group_line_up_id" INTEGER NOT NULL,
-    "member_id" INTEGER NOT NULL,
-    "member_line_up_id" INTEGER NOT NULL,
-    FOREIGN KEY ("member_id")
-        REFERENCES artists ("id"),
-    FOREIGN KEY ("member_line_up_id")
-        REFERENCES groups ("line_up_id"),
-    FOREIGN KEY ("group_id")
-        REFERENCES artists ("artist_id"),
-    FOREIGN KEY ("group_line_up_id")
-        REFERENCES groups ("line_up_id"),
-    PRIMARY KEY (group_id, group_line_up_id, member_id, member_line_up_id)
-);
-
-
-create TABLE link_anime_genre (
-    "annId" INTEGER NOT NULL,
-    "genre" VARCHAR(255),
-    FOREIGN KEY ("annId")
-        REFERENCES animes ("annId"),
-    PRIMARY KEY (annId, genre)
-);
-
-
-create TABLE link_anime_tag (
-    "annId" INTEGER NOT NULL,
-    "tag" VARCHAR(255),
-    FOREIGN KEY ("annId")
-        REFERENCES animes ("annId"),
-    PRIMARY KEY (annId, tag)
-);
-
-create TABLE link_anime_altNames (
-    "annId" INTEGER NOT NULL,
-    "name" VARCHAR(255),
-    FOREIGN KEY ("annId")
-        REFERENCES animes ("annId"),
-    PRIMARY KEY (annId, name)
-);
-
-CREATE VIEW artistsNames AS 
-SELECT orderedNames.inserted_order, artists.id, group_concat(orderedNames.name, "\$") AS names, artists.vocalist, artists.composer
-FROM artists
-LEFT JOIN (SELECT * FROM artist_names ORDER BY artist_names.inserted_order) AS orderedNames
-ON artists.id = orderedNames.artist_id
-GROUP BY artists.id;
-
-CREATE VIEW artistsMembers AS 
-SELECT artists.id, group_concat(link_artist_group.member_id) AS members, group_concat(link_artist_group.member_line_up_id) as members_line_up 
-FROM artists
-LEFT JOIN link_artist_group ON artists.id = link_artist_group.group_id 
-GROUP BY artists.id;
-
-CREATE VIEW artistsGroups AS 
-SELECT artists.id, group_concat(link_artist_group.group_id) AS groups, group_concat(link_artist_group.group_line_up_id) as groups_line_up 
-FROM artists 
-LEFT JOIN link_artist_group ON artists.id = link_artist_group.member_id 
-GROUP BY artists.id;
-
-CREATE VIEW artistsLineUps AS 
-SELECT artists.id, artistsNames.names, link_artist_group.group_line_up_id, group_concat(link_artist_group.member_id) AS members, group_concat(link_artist_group.member_line_up_id) as members_line_up 
-FROM artists 
-LEFT JOIN link_artist_group ON artists.id = link_artist_group.group_id
-LEFT JOIN artistsNames ON artists.id = artistsNames.id
-GROUP BY artists.id, link_artist_group.group_line_up_id;
-
-CREATE VIEW artistsFull AS
-SELECT artistsNames.id, artistsNames.names, artistsNames.vocalist, artistsNames.composer, artistsMembers.members, artistsMembers.members_line_up, artistsGroups.groups, artistsGroups.groups_line_up
-FROM artistsNames
-INNER JOIN artistsMembers ON artistsNames.id = artistsMembers.id
-INNER JOIN artistsGroups ON artistsNames.id = artistsGroups.id;
-
-CREATE VIEW animesFull AS
-SELECT animes.annId, animes.animeExpandName, animes.animeJPName, animes.animeENName, group_concat(link_anime_altNames.name, "\$") AS altNames, animes.animeType, animes.animeVintage
-FROM animes
-LEFT JOIN link_anime_altNames
-ON animes.annId = link_anime_altNames.annId
-GROUP BY animes.annId;
-
-CREATE VIEW songsAnimes AS
-SELECT animesFull.annId, animesFull.animeExpandName, animesFull.animeJPName, animesFull.animeENName, animesFull.altNames, animesFull.animeVintage, animesFull.animeType, 
-songs.id as songId, songs.annSongId, songs.songType, songs.songNumber, songs.songName, songs.songArtist, songs.songDifficulty, songs.songCategory
-FROM animesFull
-LEFT JOIN songs ON animesFull.annId = songs.annId;
-
-CREATE VIEW songsArtists AS
-SELECT songs.id as songId, group_concat(link_song_artist.artist_id) AS artists, group_concat(link_song_artist.artist_line_up_id) AS artists_line_up
-FROM songs 
-LEFT JOIN link_song_artist ON songs.id = link_song_artist.song_id
-GROUP BY songs.id;
-
-CREATE VIEW songsComposers AS
-SELECT songs.id as songId, group_concat(link_song_composer.composer_id) AS composers
-FROM songs
-LEFT JOIN link_song_composer ON songs.id = link_song_composer.song_id
-GROUP BY songs.id;
-
-CREATE VIEW songsArrangers AS
-SELECT songs.id as songId, group_concat(link_song_arranger.arranger_id) AS arrangers
-FROM songs
-LEFT JOIN link_song_arranger ON songs.id = link_song_arranger.song_id
-GROUP BY songs.id;
-
-CREATE VIEW songsFull AS
-SELECT songsAnimes.annId, songsAnimes.animeExpandName, songsAnimes.animeJPName, songsAnimes.animeENName, songsAnimes.altNames, songsAnimes.animeVintage, songsAnimes.animeType, 
-songsAnimes.songId, songsAnimes.annSongId, songsAnimes.songType, songsAnimes.songNumber, songsAnimes.songName, songsAnimes.songArtist, songsArtists.artists, songsArtists.artists_line_up, songsComposers.composers, songsArrangers.arrangers, songsAnimes.songDifficulty, songsAnimes.songCategory
-FROM songsAnimes
-INNER JOIN songsArtists ON songsAnimes.songId = songsArtists.songId
-INNER JOIN songsComposers ON songsAnimes.songId = songsComposers.songId
-INNER JOIN songsArrangers ON songsAnimes.songId = songsArrangers.songId;
+CREATE VIEW 
+    songsFull AS
+SELECT 
+    songsAnimes.annId, 
+    songsAnimes.animeExpandName,
+    songsAnimes.animeJPName, 
+    songsAnimes.animeENName, 
+    songsAnimes.altNames, 
+    songsAnimes.animeVintage, 
+    songsAnimes.animeType, 
+    songsAnimes.songId, 
+    songsAnimes.annSongId, 
+    songsAnimes.songType, 
+    songsAnimes.songNumber, 
+    songsAnimes.songName, 
+    songsAnimes.songArtist, 
+    songsAnimes.songDifficulty, 
+    songsAnimes.songCategory, 
+    MAX(CASE WHEN songsArtists.artist_line_up_type = 'vocals' THEN songsArtists.artists ELSE NULL END) AS vocals, 
+    MAX(CASE WHEN songsArtists.artist_line_up_type = 'vocals' THEN songsArtists.artist_line_up_id ELSE NULL END) AS vocals_line_up, 
+    MAX(CASE WHEN songsArtists.artist_line_up_type = 'performers' THEN songsArtists.artists ELSE NULL END) AS performers, 
+    MAX(CASE WHEN songsArtists.artist_line_up_type = 'performers' THEN songsArtists.artist_line_up_id ELSE NULL END) AS performers_line_up, 
+    MAX(CASE WHEN songsArtists.artist_line_up_type = 'composers' THEN songsArtists.artists ELSE NULL END) AS composers, 
+    MAX(CASE WHEN songsArtists.artist_line_up_type = 'composers' THEN songsArtists.artist_line_up_id ELSE NULL END) AS composers_line_up, 
+    MAX(CASE WHEN songsArtists.artist_line_up_type = 'arrangers' THEN songsArtists.artists ELSE NULL END) AS arrangers, 
+    MAX(CASE WHEN songsArtists.artist_line_up_type = 'arrangers' THEN songsArtists.artist_line_up_id ELSE NULL END) AS arrangers_line_up, 
+    songsAnimes.HQ, 
+    songsAnimes.MQ, 
+    songsAnimes.audio
+FROM 
+    songsAnimes
+INNER JOIN 
+    songsArtists ON songsAnimes.songId = songsArtists.songId
+GROUP BY
+    songsAnimes.songId;
 """
 
 
@@ -467,6 +301,20 @@ def run_sql_command(cursor, sql_command, data=None):
 
     """
     Run the SQL command with nice looking print when failed (no)
+
+    Parameters
+    ----------
+    cursor : sqlite3.Cursor
+        The cursor to run the command
+    sql_command : str
+        The SQL command to run
+    data : tuple, optional
+        The data to insert in the command, by default None
+
+    Returns
+    -------
+    list
+        The result of the command
     """
 
     try:
@@ -489,82 +337,165 @@ def run_sql_command(cursor, sql_command, data=None):
                     sql_command = sql_command.replace("?", str(param), 1)
 
         print(
-            "\nError while running this command: \n",
-            sql_command,
-            "\n",
-            error,
-            "\nData: ",
-            data,
-            "\n",
+            f"\n{error}\nError while running this command: {sql_command}\nData: {data}\n"
         )
         exit()
 
 
-def insert_new_artist(cursor, id, is_vocalist, is_composer):
+"""    try:
+        cursor.execute(sql_command, data)
+        record = cursor.fetchall()
+        return record
+
+    except sqlite3.Error as error:
+        print(
+            f"\nError while running this command: \n{sql_command}\n{error}\nData: {data}\n"
+        )
+        exit()
+
+"""
+
+
+def insert_new_artist(cursor, id, is_vocalist, is_performer, is_composer):
 
     """
     Insert a new artist in the database
+
+    Parameters
+    ----------
+    cursor : sqlite3.Cursor
+        The cursor to run the command
+    id : int
+        The id of the artist
+    is_vocalist : bool
+        True if the artist is a vocalist
+    is_performer : bool
+        True if the artist is a performer
+    is_composer : bool
+        True if the artist is a composer
+
+    Returns
+    -------
+    int
+        The id of the last row inserted
     """
 
-    sql_insert_artist = "INSERT INTO artists(id, vocalist, composer) VALUES(?, ?, ?);"
+    sql_insert_artist = (
+        "INSERT INTO artists(id, vocalist, performer, composer) VALUES(?, ?, ?, ?);"
+    )
 
-    run_sql_command(cursor, sql_insert_artist, [id, is_vocalist, is_composer])
+    run_sql_command(
+        cursor, sql_insert_artist, [id, is_vocalist, is_performer, is_composer]
+    )
 
     return cursor.lastrowid
 
 
-def insert_new_group(cursor, artist_id, set_id):
+def insert_new_line_up(cursor, artist_id, line_up_type, line_up_id):
 
     """
-    Add a new group configuration
+    Add a new line up configuration
+
+    Parameters
+    ----------
+    cursor : sqlite3.Cursor
+        The cursor to run the command
+    artist_id : int
+        The id of the artist
+    line_up_type : str
+        The type of the line up (vocals, performers, composers or arrangers)
+    line_up_id : int
+        The id of the line up
+
+    Returns
+    -------
+    int
+        The id of the last row inserted
     """
 
-    command = "INSERT INTO groups(artist_id, line_up_id) VALUES(?, ?);"
-    run_sql_command(cursor, command, [artist_id, set_id])
+    if line_up_type not in ["vocals", "performers", "composers", "arrangers"]:
+        print(f"Error: {line_up_type} is not a valid line up type")
+        exit()
+
+    command = (
+        "INSERT INTO line_ups(artist_id, line_up_type, line_up_id) VALUES(?, ?, ?);"
+    )
+    run_sql_command(cursor, command, [artist_id, line_up_type, line_up_id])
 
 
-def insert_artist_alt_names(cursor, id, names):
-
-    """
-    Insert all alternative names corresponding to a single artist
-    """
-
-    for name in names:
-
-        sql_insert_artist_name = (
-            "INSERT INTO artist_names(artist_id, name) VALUES(?, ?);"
-        )
-
-        run_sql_command(cursor, sql_insert_artist_name, (id, name))
-
-
-def add_artist_to_group(cursor, group_id, group_line_up_id, artist_id, artist_line_up):
+def insert_artist_alt_name(cursor, id, name):
 
     """
-    Add an artist to a group
+    Add a new name to an artist
+
+    Parameters
+    ----------
+    cursor : sqlite3.Cursor
+        The cursor to run the command
+    id : int
+        The id of the artist
+    name : str
+        The name to add
+
+    Returns
+    -------
+    None
     """
 
-    sql_add_artist_to_group = "INSERT INTO link_artist_group(group_id, group_line_up_id, member_id, member_line_up_id) VALUES(?, ?, ?, ?)"
+    sql_insert_artist_name = "INSERT INTO artist_names(artist_id, name) VALUES(?, ?);"
+
+    run_sql_command(cursor, sql_insert_artist_name, (id, name))
+
+
+def add_artist_to_line_up(
+    cursor,
+    artist_id,
+    artist_line_up_type,
+    artist_line_up_id,
+    group_id,
+    group_line_up_type,
+    group_line_up_id,
+):
+
+    """
+    Add an artist to a line up
+
+    Parameters
+    ----------
+    cursor : sqlite3.Cursor
+        The cursor to run the command
+    artist_id : int
+        The id of the artist
+    artist_line_up_type : str
+        The type of the line up of the artist (vocals, performers, composers or arrangers)
+    artist_line_up_id : int
+        The id of the line up of the artist
+    group_id : int
+        The id of the group
+    group_line_up_type : str
+        The type of the line up of the group (vocals, performers, composers or arrangers)
+    group_line_up_id : int
+        The id of the line up of the group
+
+    Returns
+    -------
+    None
+    """
+
+    sql_add_artist_to_group = "INSERT INTO link_artist_line_up(artist_id, artist_line_up_type, artist_line_up_id, group_id, group_line_up_type, group_line_up_id) VALUES(?, ?, ?, ?, ?, ?)"
 
     run_sql_command(
         cursor,
         sql_add_artist_to_group,
-        (group_id, group_line_up_id, artist_id, artist_line_up),
+        (
+            artist_id,
+            artist_line_up_type,
+            artist_line_up_id,
+            group_id,
+            group_line_up_type,
+            group_line_up_id,
+        ),
     )
-
-
-def get_anime_ID(cursor, animeExpandName, animeJPName):
-
-    """
-    Get the first anime it finds that matches the provided parameters
-    """
-
-    sql_get_anime_ID = "SELECT annId WHERE animeExpandName = ? and animeJPName = ?;"
-
-    anime_id = run_sql_command(cursor, sql_get_anime_ID, (animeExpandName, animeJPName))
-    if anime_id is not None and len(anime_id) > 0:
-        return anime_id[0][0]
-    return None
 
 
 def insert_anime(
@@ -573,6 +504,27 @@ def insert_anime(
 
     """
     Insert a new anime in the database
+
+    Parameters
+    ----------
+    cursor : sqlite3.Cursor
+        The cursor to run the command
+    annId : int
+        The id of the anime on ANN
+    animeExpandName : str
+        The name of the anime in expand database on AMQ
+    animeENName : str
+        The english name of the anime
+    animeJPName : str
+        The japanese name of the anime
+    animeVintage : str
+        The vintage of the anime
+    animeType : str
+        The type of the anime (TV, OVA, Movie, etc.)
+
+    Returns
+    -------
+    None
     """
 
     sql_insert_anime = "INSERT INTO animes(annId, animeExpandName, animeENName, animeJPName, animeVintage, animeType) VALUES(?, ?, ?, ?, ?, ?);"
@@ -601,9 +553,36 @@ def insert_song(
 
     """
     Insert a new song in the database and return the newly created song ID
+
+    Parameters
+    ----------
+    cursor : sqlite3.Cursor
+        The cursor to run the command
+    annSongId : int
+        The id of the song on AMQ
+    annId : int
+        The id of the anime on ANN
+    songType : str
+        The type of the song (OP, ED, Insert, etc.)
+    songNumber : int
+        The number of the song
+    songName : str
+        The name of the song
+    songArtist : str
+        The artist of the song
+    songDifficulty : str
+        The difficulty of the song on AMQ
+    songCategory : str
+        The category of the song (standard, character, chanting, etc.)
+    HQ : int, optional
+        The id of the HQ file, by default -1 (i.e not uploaded)
+    MQ : int, optional
+        The id of the MQ file, by default -1 (i.e not uploaded)
+    audio : int, optional
+        The id of the audio file, by default -1 (i.e not uploaded)
     """
 
-    data = (
+    data = [
         annSongId,
         annId,
         songType,
@@ -612,67 +591,71 @@ def insert_song(
         songArtist,
         songDifficulty,
         songCategory,
-    )
+    ]
 
+    sql_insert_song = "INSERT INTO songs (annSongId, annId, songType, songNumber, songName, songArtist, songDifficulty, songCategory"
     if HQ != -1:
-        sql_insert_song = "INSERT INTO songs(annSongId, annId, songType, songNumber, songName, songArtist, songDifficulty, songCategory, HQ, MQ, audio) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"
-        data = (
-            *data,
-            HQ,
-            MQ,
-            audio,
-        )
+        sql_insert_song += ", HQ, MQ, audio) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        data.extend([HQ, MQ, audio])
     else:
-        sql_insert_song = "INSERT INTO songs(annSongId, annId, songType, songNumber, songName, songArtist, songDifficulty, songCategory) VALUES(?, ?, ?, ?, ?, ?, ?, ?);"
+        sql_insert_song += ") VALUES(?, ?, ?, ?, ?, ?, ?, ?)"
 
-    run_sql_command(cursor, sql_insert_song, data)
+    run_sql_command(cursor, sql_insert_song, list(data))
 
     return cursor.lastrowid
 
 
-def link_song_artist(cursor, song_id, artist_id, artist_line_up_id):
+def link_song_artist(
+    cursor, song_id, artist_id, artist_line_up_type, artist_line_up_id
+):
 
     """
-    Add a new link between an song and an artist in the table
+    Add a new link between a song and an artist
+
+    Parameters
+    ----------
+    cursor : sqlite3.Cursor
+        The cursor to run the command
+    song_id : int
+        The id of the song
+    artist_id : int
+        The id of the artist
+    artist_line_up_type : str
+        The type of the relation with the artist (vocals, performers, composers or arrangers)
+    artist_line_up_id : int
+        The id of the line up of the artist
+
+    Returns
+    -------
+    None
     """
 
-    sql_link_song_artist = "INSERT INTO link_song_artist(song_id, artist_id, artist_line_up_id) VALUES(?, ?, ?);"
+    sql_link_song_artist = "INSERT INTO link_song_artist(song_id, artist_id, artist_line_up_type, artist_line_up_id) VALUES(?, ?, ?, ?);"
 
     run_sql_command(
-        cursor, sql_link_song_artist, (song_id, artist_id, artist_line_up_id)
+        cursor,
+        sql_link_song_artist,
+        (song_id, artist_id, artist_line_up_type, artist_line_up_id),
     )
-
-
-def link_song_composer(cursor, song_id, composer_id):
-
-    """
-    Add a new link between an song and a composer in the table
-    """
-
-    sql_link_song_composer = (
-        "INSERT INTO link_song_composer(song_id, composer_id) VALUES(?, ?);"
-    )
-
-    run_sql_command(cursor, sql_link_song_composer, (song_id, composer_id))
-
-
-def link_song_arranger(cursor, song_id, arranger_id):
-
-    """
-    Add a new link between an song and an arranger in the table
-    """
-
-    sql_link_song_arranger = (
-        "INSERT INTO link_song_arranger(song_id, arranger_id) VALUES(?, ?);"
-    )
-
-    run_sql_command(cursor, sql_link_song_arranger, (song_id, arranger_id))
 
 
 def link_anime_tag(cursor, annId, tag):
 
     """
     Add a new link between an anime and a tag
+
+    Parameters
+    ----------
+    cursor : sqlite3.Cursor
+        The cursor to run the command
+    annId : int
+        The id of the anime on ANN
+    tag : str
+        The tag of the anime
+
+    Returns
+    -------
+    None
     """
 
     sql_link_anime_tag = "INSERT INTO link_anime_tag(annId, tag) VALUES(?, ?);"
@@ -684,6 +667,19 @@ def link_anime_genre(cursor, annId, genre):
 
     """
     Add a new link between an anime and a genre
+
+    Parameters
+    ----------
+    cursor : sqlite3.Cursor
+        The cursor to run the command
+    annId : int
+        The id of the anime on ANN
+    genre : str
+        The genre of the anime
+
+    Returns
+    -------
+    None
     """
 
     sql_link_anime_genre = "INSERT INTO link_anime_genre(annId, genre) VALUES(?, ?);"
@@ -694,7 +690,20 @@ def link_anime_genre(cursor, annId, genre):
 def link_anime_altNames(cursor, annId, altName):
 
     """
-    Add a new link between an anime and an alternative name
+    Add a new link between an anime and an alternative name (i.e not Expand, JP or EN)
+
+    Parameters
+    ----------
+    cursor : sqlite3.Cursor
+        The cursor to run the command
+    annId : int
+        The id of the anime on ANN
+    altName : str
+        The alternative name of the anime
+
+    Returns
+    -------
+    None
     """
 
     sql_link_anime_altName = (
@@ -704,6 +713,7 @@ def link_anime_altNames(cursor, annId, altName):
     run_sql_command(cursor, sql_link_anime_altName, (annId, altName))
 
 
+# Databases reset
 try:
     sqliteConnection = sqlite3.connect(database)
     cursor = sqliteConnection.cursor()
@@ -712,40 +722,108 @@ try:
     sqliteConnection.commit()
     cursor.close()
     sqliteConnection.close()
-    print("Reset successful :)")
 except sqlite3.Error as error:
     print("\n", error, "\n")
 
 try:
-    sqliteConnection = sqlite3.connect(database)
-    cursor = sqliteConnection.cursor()
-    print("Connection successful :)")
+    sqliteConnection2 = sqlite3.connect(nerfedDatabase)
+    cursor2 = sqliteConnection2.cursor()
+    for command in RESET_DB_SQL.split(";"):
+        run_sql_command(cursor2, command)
+    sqliteConnection2.commit()
+    cursor2.close()
+    sqliteConnection2.close()
 except sqlite3.Error as error:
     print("\n", error, "\n")
 
+print("Reset successful :)")
 
+# Databases connection
+try:
+    sqliteConnection = sqlite3.connect(database)
+    cursor = sqliteConnection.cursor()
+except sqlite3.Error as error:
+    print("\n", error, "\n")
+
+try:
+    sqliteConnection2 = sqlite3.connect(nerfedDatabase)
+    cursor2 = sqliteConnection2.cursor()
+except sqlite3.Error as error:
+    print("\n", error, "\n")
+
+print("Connection successful :)")
+
+# Database population with artist_database
 for artist_id in artist_database:
 
     new_artist_id = insert_new_artist(
         cursor,
         artist_id,
         artist_database[artist_id]["vocalist"],
+        artist_database[artist_id]["performer"],
         artist_database[artist_id]["composer"],
     )
 
-    insert_artist_alt_names(cursor, new_artist_id, artist_database[artist_id]["names"])
+    for name in (
+        artist_database[artist_id]["amqNames"] + artist_database[artist_id]["altNames"]
+    ):
+        insert_artist_alt_name(cursor, new_artist_id, name)
+        insert_artist_alt_name(cursor2, new_artist_id, name)
 
-    if len(artist_database[artist_id]["members"]) > 0:
-        for i, member_sets in enumerate(artist_database[artist_id]["members"]):
-            insert_new_group(cursor, new_artist_id, i)
-            for member in member_sets:
-                add_artist_to_group(cursor, new_artist_id, i, int(member[0]), member[1])
+    # If it's a group and have line ups
+    line_up_id = {
+        "vocals": 0,
+        "performers": 0,
+        "composers": 0,
+        "arrangers": 0,
+    }
+    if len(artist_database[artist_id]["line_ups"]):
+        for line_up in artist_database[artist_id]["line_ups"]:
+            insert_new_line_up(
+                cursor, new_artist_id, line_up["type"], line_up_id[line_up["type"]]
+            )
+            insert_new_line_up(
+                cursor2, new_artist_id, line_up["type"], line_up_id[line_up["type"]]
+            )
+            for member_id, member_line_up_id in line_up["members"]:
+                add_artist_to_line_up(
+                    cursor,
+                    member_id,
+                    line_up["type"],
+                    member_line_up_id,
+                    new_artist_id,
+                    line_up["type"],
+                    line_up_id[line_up["type"]],
+                )
+                add_artist_to_line_up(
+                    cursor2,
+                    member_id,
+                    line_up["type"],
+                    member_line_up_id,
+                    new_artist_id,
+                    line_up["type"],
+                    line_up_id[line_up["type"]],
+                )
+            line_up_id[line_up["type"]] += 1
 
-for anime in song_database:
+# Database population with song_database
+for anime_annId in song_database:
+
+    anime = song_database[anime_annId]
 
     insert_anime(
         cursor,
-        anime["annId"],
+        anime_annId,
+        anime["animeExpandName"],
+        anime["animeENName"] if "animeENName" in anime else None,
+        anime["animeJPName"] if "animeJPName" in anime else None,
+        anime["animeVintage"] if "animeVintage" in anime else None,
+        anime["animeType"] if "animeType" in anime else None,
+    )
+
+    insert_anime(
+        cursor2,
+        anime_annId,
         anime["animeExpandName"],
         anime["animeENName"] if "animeENName" in anime else None,
         anime["animeJPName"] if "animeJPName" in anime else None,
@@ -755,15 +833,18 @@ for anime in song_database:
 
     if "tags" in anime and anime["tags"]:
         for tag in anime["tags"]:
-            link_anime_tag(cursor, anime["annId"], tag)
+            link_anime_tag(cursor, anime_annId, tag)
+            link_anime_tag(cursor2, anime_annId, tag)
 
     if "genres" in anime and anime["genres"]:
         for genre in anime["genres"]:
-            link_anime_genre(cursor, anime["annId"], genre)
+            link_anime_genre(cursor, anime_annId, genre)
+            link_anime_genre(cursor2, anime_annId, genre)
 
     if "altNames" in anime and anime["altNames"]:
         for altName in anime["altNames"]:
-            link_anime_altNames(cursor, anime["annId"], altName)
+            link_anime_altNames(cursor, anime_annId, altName)
+            link_anime_altNames(cursor2, anime_annId, altName)
 
     for song in anime["songs"]:
 
@@ -772,7 +853,7 @@ for anime in song_database:
         song_id = insert_song(
             cursor,
             song["annSongId"],
-            anime["annId"],
+            anime_annId,
             song["songType"],
             song["songNumber"],
             song["songName"],
@@ -784,118 +865,59 @@ for anime in song_database:
             links["audio"] if "audio" in links.keys() else None,
         )
 
-        for artist in song["artist_ids"]:
-
-            link_song_artist(cursor, song_id, int(artist[0]), artist[1])
-
-        if "composer_ids" in song:
-            for composer in song["composer_ids"]:
-                link_song_composer(cursor, song_id, int(composer[0]))
-
-        if "arranger_ids" in song:
-            for arranger in song["arranger_ids"]:
-                # print(song["annSongId"], arranger)
-                link_song_arranger(cursor, song_id, int(arranger[0]))
-
-
-sqliteConnection.commit()
-cursor.close()
-sqliteConnection.close()
-print("Convertion Done :) - normal")
-print()
-
-try:
-    sqliteConnection = sqlite3.connect(nerfedDatabase)
-    cursor = sqliteConnection.cursor()
-    for command in RESET_DB_SQL_NERFED.split(";"):
-        run_sql_command(cursor, command)
-    sqliteConnection.commit()
-    cursor.close()
-    sqliteConnection.close()
-    print("Reset successful :)")
-except sqlite3.Error as error:
-    print("\n", error, "\n")
-
-try:
-    sqliteConnection = sqlite3.connect(nerfedDatabase)
-    cursor = sqliteConnection.cursor()
-    print("Connection successful :)")
-except sqlite3.Error as error:
-    print("\n", error, "\n")
-
-
-for artist_id in artist_database:
-
-    new_artist_id = insert_new_artist(
-        cursor,
-        artist_id,
-        artist_database[artist_id]["vocalist"],
-        artist_database[artist_id]["composer"],
-    )
-
-    insert_artist_alt_names(cursor, new_artist_id, artist_database[artist_id]["names"])
-
-    if len(artist_database[artist_id]["members"]) > 0:
-        for i, member_sets in enumerate(artist_database[artist_id]["members"]):
-            insert_new_group(cursor, new_artist_id, i)
-            for member in member_sets:
-                add_artist_to_group(cursor, new_artist_id, i, int(member[0]), member[1])
-
-for anime in song_database:
-
-    insert_anime(
-        cursor,
-        anime["annId"],
-        anime["animeExpandName"],
-        anime["animeENName"] if "animeENName" in anime else None,
-        anime["animeJPName"] if "animeJPName" in anime else None,
-        anime["animeVintage"] if "animeVintage" in anime else None,
-        anime["animeType"] if "animeType" in anime else None,
-    )
-
-    if "tags" in anime and anime["tags"]:
-        for tag in anime["tags"]:
-            link_anime_tag(cursor, anime["annId"], tag)
-
-    if "genres" in anime and anime["genres"]:
-        for genre in anime["genres"]:
-            link_anime_genre(cursor, anime["annId"], genre)
-
-    if "altNames" in anime and anime["altNames"]:
-        for altName in anime["altNames"]:
-            link_anime_altNames(cursor, anime["annId"], altName)
-
-    for song in anime["songs"]:
-
-        links = song["links"]
-
         song_id = insert_song(
-            cursor,
+            cursor2,
             song["annSongId"],
-            anime["annId"],
+            anime_annId,
             song["songType"],
             song["songNumber"],
             song["songName"],
             song["songArtist"],
             song["songDifficulty"] if "songDifficulty" in song else None,
             song["songCategory"] if "songCategory" in song else None,
+            None,
+            None,
+            None,
         )
 
-        for artist in song["artist_ids"]:
+        if "vocals" in song and song["vocals"]:
+            for artist_id, line_up_id in song["vocals"]:
+                link_song_artist(cursor, song_id, int(artist_id), "vocals", line_up_id)
+                link_song_artist(cursor2, song_id, int(artist_id), "vocals", line_up_id)
 
-            link_song_artist(cursor, song_id, int(artist[0]), artist[1])
+        if "performers" in song and song["performers"]:
+            for artist_id, line_up_id in song["performers"]:
+                link_song_artist(
+                    cursor, song_id, int(artist_id), "performers", line_up_id
+                )
+                link_song_artist(
+                    cursor2, song_id, int(artist_id), "performers", line_up_id
+                )
 
-        if "composer_ids" in song:
-            for composer in song["composer_ids"]:
-                link_song_composer(cursor, song_id, int(composer[0]))
+        if "composers" in song and song["composers"]:
+            for artist_id, line_up_id in song["composers"]:
+                link_song_artist(
+                    cursor, song_id, int(artist_id), "composers", line_up_id
+                )
+                link_song_artist(
+                    cursor2, song_id, int(artist_id), "composers", line_up_id
+                )
 
-        if "arranger_ids" in song:
-            for arranger in song["arranger_ids"]:
-                # print(song["annSongId"], arranger)
-                link_song_arranger(cursor, song_id, int(arranger[0]))
+        if "arrangers" in song and song["arrangers"]:
+            for artist_id, line_up_id in song["arrangers"]:
+                link_song_artist(
+                    cursor, song_id, int(artist_id), "arrangers", line_up_id
+                )
+                link_song_artist(
+                    cursor2, song_id, int(artist_id), "arrangers", line_up_id
+                )
 
 
 sqliteConnection.commit()
 cursor.close()
 sqliteConnection.close()
-print("Convertion Done :) - nerfed")
+
+sqliteConnection2.commit()
+cursor2.close()
+sqliteConnection2.close()
+print("Database population successful :)")
