@@ -1,8 +1,8 @@
 import json
 import utils
 
-song_database_path = "../../app/data/song_database.json"
-artist_database_path = "../../app/data/artist_database.json"
+song_database_path = "../app/data/song_database.json"
+artist_database_path = "../app/data/artist_database.json"
 
 with open(song_database_path, encoding="utf-8") as json_file:
     song_database = json.load(json_file)
@@ -12,88 +12,101 @@ with open(artist_database_path, encoding="utf-8") as json_file:
 
 def get_fused_artist(ids):
 
-    all_names = set()
+    """
+    Get the result of the artist fusion given in parameters
+
+    Parameters
+    ----------
+    ids : list of str
+        List of artist ids to fuse
+
+    Returns
+    -------
+    dict
+        The fused artist
+    """
+
+    main_name = ""
+    all_amq_names = set()
+    all_alt_names = set()
     all_groups = []
     all_line_up = []
     vocalist = False
+    performer = False
     composer = False
     for id in ids:
-        for name in artist_database[id]["names"]:
-            all_names.add(name)
+        if not main_name:
+            main_name = artist_database[id]["name"]
+        for name in artist_database[id]["amqNames"]:
+            all_amq_names.add(name)
+        for name in artist_database[id]["altNames"]:
+            if name not in all_amq_names:
+                all_alt_names.add(name)
         for group in artist_database[id]["groups"]:
             all_groups.append(group)
-        for line_up in artist_database[id]["members"]:
+        for line_up in artist_database[id]["line_ups"]:
             all_line_up.append(line_up)
         if artist_database[id]["vocalist"]:
             vocalist = True
+        if artist_database[id]["performer"]:
+            performer = True
         if artist_database[id]["composer"]:
             composer = True
 
-    all_names = list(all_names)
-
     return {
-        "names": all_names,
+        "name": main_name,
+        "amqNames": list(all_amq_names),
+        "altNames": list(all_alt_names),
         "groups": all_groups,
-        "members": all_line_up,
+        "line_ups": all_line_up,
         "vocalist": vocalist,
+        "performer": performer,
         "composer": composer,
     }
 
 
 def process():
 
-    ids = utils.ask_line_up(
+    artists = utils.ask_line_up(
         "Type in the artist line up you want to fuse (first one will be the center)\n",
         song_database,
         artist_database,
     )
 
-    ids = [id[0] for id in ids]
+    artists = [artist["id"] for artist in artists]
 
-    if len(ids) < 2:
+    if len(artists) < 2:
         print("You need two people or more to start this process, cancelled")
         return
 
     recap_artist = ""
-    for artist in ids:
-        recap_artist += f"{artist}> {artist_database[artist]['names']} - {artist_database[artist]['groups']} - {artist_database[artist]['members']}\n"
+    for artist in artists:
+        recap_artist += f"{artist}> {artist_database[artist]['name']} {artist_database[artist]['amqNames']} {artist_database[artist]['altNames']} - {artist_database[artist]['groups']} - {artist_database[artist]['line_ups']}\n"
 
-    center_id = ids[0]
-    removed_ids = ids
-    removed_ids.pop(ids.index(center_id))
+    center_id = artists[0]
+    removed_ids = artists
+    removed_ids.pop(artists.index(center_id))
 
     print()
 
     # Updating the center_id with the new fused artist
-    artist_database[center_id] = get_fused_artist([center_id] + ids)
+    artist_database[center_id] = get_fused_artist([center_id] + artists)
 
     # Updating link in song_database for artist, composers and arrangers of deleted artists
-    line_up_id = -1
-    if artist_database[center_id]["members"]:
-        line_up_id = 0
-    for anime in song_database:
+    line_up_id = 0 if artist_database[center_id]["line_ups"] else -1
+
+    for anime_annId in song_database:
+        anime = song_database[anime_annId]
         for song in anime["songs"]:
-            for artist in song["artist_ids"]:
-                if artist[0] in removed_ids:
-                    print(
-                        f"Artist {song['songName']} {artist} → {[center_id, line_up_id]}"
-                    )
-                    artist[0] = center_id
-                    artist[1] = line_up_id
-            for composer in song["composer_ids"]:
-                if composer[0] in removed_ids:
-                    print(
-                        f"Composer {song['songName']} {composer} → {[center_id, line_up_id]}"
-                    )
-                    composer[0] = center_id
-                    composer[1] = line_up_id
-            for arranger in song["arranger_ids"]:
-                if arranger[0] in removed_ids:
-                    print(
-                        f"Arranger {song['songName']} {arranger} → {[center_id, line_up_id]}"
-                    )
-                    arranger[0] = center_id
-                    arranger[1] = line_up_id
+
+            for key in ["vocalists", "performers", "composers", "arrangers"]:
+                for artist in song[key] + song[key] + song[key] + song[key]:
+                    if artist["id"] in removed_ids:
+                        print(
+                            f"{key} {song['songName']} {artist} → {[center_id, line_up_id]}"
+                        )
+                        artist["id"] = center_id
+                        artist["line_up_id"] = line_up_id
 
     # Updating every artist that has a deleted artist as a member or a group to now link to center_id
     for id in removed_ids:
@@ -101,24 +114,24 @@ def process():
             if artist_id == center_id:
                 continue
             artist = artist_database[artist_id]
-            for line_up in artist["members"]:
-                for member in line_up:
-                    if member[0] in removed_ids:
+            for line_up in artist["line_ups"]:
+                for member in line_up["members"]:
+                    if member["id"] in removed_ids:
                         print(
-                            f"{artist['names'][0]} Member: {member[0]} {member[1]} → {[center_id, line_up_id]}"
+                            f"{artist['name']} Member: {member['id']} {member['line_up_id']} → {[center_id, line_up_id]}"
                         )
-                        member[0] = center_id
-                        member[1] = line_up_id
+                        member["id"] = center_id
+                        member["line_up_id"] = line_up_id
             for group in artist["groups"]:
-                if group[0] in removed_ids:
+                if group["id"] in removed_ids:
                     print(
-                        f"{artist['names'][0]} Group: {group[0]} {group[1]} → {[center_id, group[1]]}"
+                        f"{artist['name']} Group: {group['id']} {group['line_up_id']} → {[center_id, group['line_up_id']]}"
                     )
-                    group[0] = center_id
+                    group["id"] = center_id
         artist_database.pop(id)
 
     print()
-    validation_message = f"You will be removing these artists: {removed_ids}\nID {center_id} is chosen to be the one to stay\nNew artist:\n{artist_database[center_id]['names']}\n{artist_database[center_id]['groups']}\n{artist_database[center_id]['members']}\n{artist_database[center_id]['vocalist']}, {artist_database[center_id]['composer']}\nDo you want to proceed ?\n"
+    validation_message = f"You will be removing these artists: {removed_ids}\nID {center_id} is chosen to be the one to stay\nNew artist:\nNames : {artist_database[center_id]['name']} {artist_database[center_id]['amqNames']} {artist_database[center_id]['altNames']}\nGroups : {artist_database[center_id]['groups']}\nLine ups : {artist_database[center_id]['line_ups']}\nCredits : {artist_database[center_id]['vocalist']}, {artist_database[center_id]['performer']}, {artist_database[center_id]['composer']}\nDo you want to proceed ?\n"
     validation = utils.ask_validation(validation_message)
     if not validation:
         print("User cancelled")

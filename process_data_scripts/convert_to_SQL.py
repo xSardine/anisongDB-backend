@@ -76,7 +76,7 @@ CREATE TABLE artists (
 
 CREATE TABLE line_ups (
     "artist_id" INTEGER NOT NULL,
-    "line_up_type" TEXT CHECK(line_up_type IN ('vocals', 'performers', 'composers', 'arrangers')) NOT NULL,
+    "line_up_type" TEXT CHECK(line_up_type IN ('vocalists', 'performers', 'composers', 'arrangers')) NOT NULL,
     "line_up_id" INTEGER NOT NULL,
     FOREIGN KEY ("artist_id")
         REFERENCES artists ("id"),
@@ -95,7 +95,7 @@ CREATE TABLE artist_names (
 CREATE TABLE link_song_artist (
     "song_id" INTEGER NOT NULL,
     "artist_id" INTEGER NOT NULL,
-    "artist_line_up_type" TEXT CHECK(artist_line_up_type IN ('vocals', 'performers', 'composers', 'arrangers')) NOT NULL,
+    "artist_line_up_type" TEXT CHECK(artist_line_up_type IN ('vocalists', 'performers', 'composers', 'arrangers')) NOT NULL,
     "artist_line_up_id" INTEGER NOT NULL,
     FOREIGN KEY ("song_id")
         REFERENCES songs ("id"),
@@ -108,10 +108,10 @@ CREATE TABLE link_song_artist (
 
 create TABLE link_artist_line_up (
     "artist_id" INTEGER NOT NULL,
-    "artist_line_up_type" TEXT CHECK(artist_line_up_type IN ('vocals', 'performers', 'composers', 'arrangers')) NOT NULL,
+    "artist_line_up_type" TEXT CHECK(artist_line_up_type IN ('vocalists', 'performers', 'composers', 'arrangers')) NOT NULL,
     "artist_line_up_id" INTEGER NOT NULL,
     "group_id" INTEGER NOT NULL,
-    "group_line_up_type" TEXT CHECK(group_line_up_type IN ('vocals', 'performers', 'composers', 'arrangers')) NOT NULL,
+    "group_line_up_type" TEXT CHECK(group_line_up_type IN ('vocalists', 'performers', 'composers', 'arrangers')) NOT NULL,
     "group_line_up_id" INTEGER NOT NULL,
     FOREIGN KEY ("artist_id")
         REFERENCES artists ("id"),
@@ -277,8 +277,8 @@ SELECT
     songsAnimes.songArtist, 
     songsAnimes.songDifficulty, 
     songsAnimes.songCategory, 
-    MAX(CASE WHEN songsArtists.artist_line_up_type = 'vocals' THEN songsArtists.artists ELSE NULL END) AS vocals, 
-    MAX(CASE WHEN songsArtists.artist_line_up_type = 'vocals' THEN songsArtists.artist_line_up_id ELSE NULL END) AS vocals_line_up, 
+    MAX(CASE WHEN songsArtists.artist_line_up_type = 'vocalists' THEN songsArtists.artists ELSE NULL END) AS vocalists, 
+    MAX(CASE WHEN songsArtists.artist_line_up_type = 'vocalists' THEN songsArtists.artist_line_up_id ELSE NULL END) AS vocalists_line_up, 
     MAX(CASE WHEN songsArtists.artist_line_up_type = 'performers' THEN songsArtists.artists ELSE NULL END) AS performers, 
     MAX(CASE WHEN songsArtists.artist_line_up_type = 'performers' THEN songsArtists.artist_line_up_id ELSE NULL END) AS performers_line_up, 
     MAX(CASE WHEN songsArtists.artist_line_up_type = 'composers' THEN songsArtists.artists ELSE NULL END) AS composers, 
@@ -403,7 +403,7 @@ def insert_new_line_up(cursor, artist_id, line_up_type, line_up_id):
     artist_id : int
         The id of the artist
     line_up_type : str
-        The type of the line up (vocals, performers, composers or arrangers)
+        The type of the line up (vocalists, performers, composers or arrangers)
     line_up_id : int
         The id of the line up
 
@@ -413,7 +413,7 @@ def insert_new_line_up(cursor, artist_id, line_up_type, line_up_id):
         The id of the last row inserted
     """
 
-    if line_up_type not in ["vocals", "performers", "composers", "arrangers"]:
+    if line_up_type not in ["vocalists", "performers", "composers", "arrangers"]:
         print(f"Error: {line_up_type} is not a valid line up type")
         exit()
 
@@ -467,13 +467,13 @@ def add_artist_to_line_up(
     artist_id : int
         The id of the artist
     artist_line_up_type : str
-        The type of the line up of the artist (vocals, performers, composers or arrangers)
+        The type of the line up of the artist (vocalists, performers, composers or arrangers)
     artist_line_up_id : int
         The id of the line up of the artist
     group_id : int
         The id of the group
     group_line_up_type : str
-        The type of the line up of the group (vocals, performers, composers or arrangers)
+        The type of the line up of the group (vocalists, performers, composers or arrangers)
     group_line_up_id : int
         The id of the line up of the group
 
@@ -621,7 +621,7 @@ def link_song_artist(
     artist_id : int
         The id of the artist
     artist_line_up_type : str
-        The type of the relation with the artist (vocals, performers, composers or arrangers)
+        The type of the relation with the artist (vocalists, performers, composers or arrangers)
     artist_line_up_id : int
         The id of the line up of the artist
 
@@ -772,7 +772,7 @@ for artist_id in artist_database:
 
     # If it's a group and have line ups
     line_up_id = {
-        "vocals": 0,
+        "vocalists": 0,
         "performers": 0,
         "composers": 0,
         "arrangers": 0,
@@ -785,21 +785,21 @@ for artist_id in artist_database:
             insert_new_line_up(
                 cursor2, new_artist_id, line_up["type"], line_up_id[line_up["type"]]
             )
-            for member_id, member_line_up_id in line_up["members"]:
+            for member in line_up["members"]:
                 add_artist_to_line_up(
                     cursor,
-                    member_id,
+                    member["id"],
                     line_up["type"],
-                    member_line_up_id,
+                    member["line_up_id"],
                     new_artist_id,
                     line_up["type"],
                     line_up_id[line_up["type"]],
                 )
                 add_artist_to_line_up(
                     cursor2,
-                    member_id,
+                    member["id"],
                     line_up["type"],
-                    member_line_up_id,
+                    member["line_up_id"],
                     new_artist_id,
                     line_up["type"],
                     line_up_id[line_up["type"]],
@@ -880,36 +880,72 @@ for anime_annId in song_database:
             None,
         )
 
-        if "vocals" in song and song["vocals"]:
-            for artist_id, line_up_id in song["vocals"]:
-                link_song_artist(cursor, song_id, int(artist_id), "vocals", line_up_id)
-                link_song_artist(cursor2, song_id, int(artist_id), "vocals", line_up_id)
-
-        if "performers" in song and song["performers"]:
-            for artist_id, line_up_id in song["performers"]:
+        if "vocalists" in song and song["vocalists"]:
+            for artist in song["vocalists"]:
                 link_song_artist(
-                    cursor, song_id, int(artist_id), "performers", line_up_id
+                    cursor,
+                    song_id,
+                    int(artist["id"]),
+                    "vocalists",
+                    artist["line_up_id"],
                 )
                 link_song_artist(
-                    cursor2, song_id, int(artist_id), "performers", line_up_id
+                    cursor2,
+                    song_id,
+                    int(artist["id"]),
+                    "vocalists",
+                    artist["line_up_id"],
+                )
+
+        if "performers" in song and song["performers"]:
+            for artist in song["performers"]:
+                link_song_artist(
+                    cursor,
+                    song_id,
+                    int(artist["id"]),
+                    "performers",
+                    artist["line_up_id"],
+                )
+                link_song_artist(
+                    cursor2,
+                    song_id,
+                    int(artist["id"]),
+                    "performers",
+                    artist["line_up_id"],
                 )
 
         if "composers" in song and song["composers"]:
-            for artist_id, line_up_id in song["composers"]:
+            for artist in song["composers"]:
                 link_song_artist(
-                    cursor, song_id, int(artist_id), "composers", line_up_id
+                    cursor,
+                    song_id,
+                    int(artist["id"]),
+                    "composers",
+                    artist["line_up_id"],
                 )
                 link_song_artist(
-                    cursor2, song_id, int(artist_id), "composers", line_up_id
+                    cursor2,
+                    song_id,
+                    int(artist["id"]),
+                    "composers",
+                    artist["line_up_id"],
                 )
 
         if "arrangers" in song and song["arrangers"]:
-            for artist_id, line_up_id in song["arrangers"]:
+            for artist in song["arrangers"]:
                 link_song_artist(
-                    cursor, song_id, int(artist_id), "arrangers", line_up_id
+                    cursor,
+                    song_id,
+                    int(artist["id"]),
+                    "arrangers",
+                    artist["line_up_id"],
                 )
                 link_song_artist(
-                    cursor2, song_id, int(artist_id), "arrangers", line_up_id
+                    cursor2,
+                    song_id,
+                    int(artist["id"]),
+                    "arrangers",
+                    artist["line_up_id"],
                 )
 
 

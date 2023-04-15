@@ -37,6 +37,21 @@ ANIME_REGEX_REPLACE_RULES = [
 
 
 def escapeRegExp(str):
+
+    """
+    Escape the string to be used in a regex
+
+    Parameters
+    ----------
+    str : str
+        The string to escape
+
+    Returns
+    -------
+    str
+        The escaped string
+    """
+
     str = re.escape(str)
     str = str.replace("\ ", " ")
     str = str.replace("\*", "*")
@@ -44,12 +59,43 @@ def escapeRegExp(str):
 
 
 def apply_regex_rules(search):
+    """
+    Apply the regex rules in ANIME_REGEX_REPLACE_RULES to the search string
+
+    Parameters
+    ----------
+    search : str
+        The string to apply the rules to
+
+    Returns
+    -------
+    str
+        The string with the rules applied
+    """
+
     for rule in ANIME_REGEX_REPLACE_RULES:
         search = search.replace(rule["input"], rule["replace"])
     return search
 
 
 def get_regex_search(og_search, partial_match=True, swap_words=True):
+    """
+    Get the regex search string from the search string
+
+    Parameters
+    ----------
+    og_search : str
+        The search string
+    partial_match : bool, optional
+        Whether to allow partial matches, by default True
+    swap_words : bool, optional
+        Whether to allow swapping the words, by default True
+
+    Returns
+    -------
+    str
+        The regex search string
+    """
 
     og_search = escapeRegExp(og_search.lower())
     search = apply_regex_rules(og_search)
@@ -70,6 +116,19 @@ def get_regex_search(og_search, partial_match=True, swap_words=True):
 
 
 def ask_validation(message):
+    """
+    Ask the user for a validation
+
+    Parameters
+    ----------
+    message : str
+        The message to display
+
+    Returns
+    -------
+    bool
+        True if the user validated, False otherwise
+    """
 
     validation = None
     while validation != "n" and validation != "y":
@@ -80,6 +139,21 @@ def ask_validation(message):
 
 
 def ask_integer_input(message, allowed_values):
+    """
+    Ask the user for an integer input
+
+    Parameters
+    ----------
+    message : str
+        The message to display
+    allowed_values : list
+        The allowed values
+
+    Returns
+    -------
+    int
+        The user input
+    """
 
     user_input = None
     while user_input not in allowed_values:
@@ -92,6 +166,29 @@ def ask_integer_input(message, allowed_values):
 def ask_artist(
     message, song_database, artist_database, not_exist_ok=False, partial_match=False
 ):
+    """
+    Ask the user for an artist
+
+    Parameters
+    ----------
+    message : str
+        The message to display
+    song_database : SongDatabase
+        The song database
+    artist_database : ArtistDatabase
+        The artist database
+    not_exist_ok : bool, optional
+        Whether to allow the artist to not exist, and create a new one, by default False
+    partial_match : bool, optional
+        Whether to allow partial matches, by default False
+
+    Returns
+    -------
+    str
+        The artist name search by the user
+    int
+        The artist ID
+    """
 
     user_input = input(message)
     artist_id = get_artist_id(
@@ -105,7 +202,46 @@ def ask_artist(
     return user_input, artist_id
 
 
+def ask_relation_type(message):
+    """
+    Ask the user for a relation type
+
+    Parameters
+    ----------
+    message : str
+        The message to display
+
+    Returns
+    -------
+    str
+        The relation type (vocalists, performers, composers, arrangers)
+    """
+
+    relation_map = {
+        "0": "vocalists",
+        "1": "performers",
+        "2": "composers",
+        "3": "arrangers",
+    }
+
+    message += f"\n{relation_map}\n"
+
+    user_input = None
+    while user_input not in ["0", "1", "2", "3"]:
+        user_input = input(message)
+
+    return relation_map[user_input]
+
+
 def ask_song_ids():
+    """
+    Ask the user to input the song IDs to update
+
+    Returns
+    -------
+    list
+        The song IDs entered by the user
+    """
 
     song_ids = []
 
@@ -136,6 +272,27 @@ def ask_song_ids():
 def ask_line_up(
     message, song_database, artist_database, not_exist_ok=False, partial_match=False
 ):
+    """
+    Ask the user for a line up of artist
+
+    Parameters
+    ----------
+    message : str
+        The message to display
+    song_database : SongDatabase
+        The song database
+    artist_database : ArtistDatabase
+        The artist database
+    not_exist_ok : bool, optional
+        Whether to allow the artist to not exist, and create a new one, by default False
+    partial_match : bool, optional
+        Whether to allow partial matches, by default False
+
+    Returns
+    -------
+    list
+        The line up of artist
+    """
 
     group_members = []
     while True:
@@ -151,31 +308,34 @@ def ask_line_up(
             user_input,
             not_exist_ok=not_exist_ok,
             partial_match=partial_match,
-            excluded_ids=[mid[0] for mid in group_members],
+            excluded_ids=[member["id"] for member in group_members],
         )
 
-        if member_id in [mid[0] for mid in group_members]:
+        if member_id in [member["id"] for member in group_members]:
             print("You can't have the same artist twice in the line up !!")
             exit()
 
-        if not artist_database[member_id]["members"]:
-            group_members.append([member_id, -1])
+        if not artist_database[member_id]["line_ups"]:
+            group_members.append({"id": member_id, "line_up_id": -1})
             print(f"Adding {[member_id, -1]}")
 
-        elif len(artist_database[member_id]["members"]) == 1:
-            group_members.append([member_id, 0])
+        elif len(artist_database[member_id]["line_ups"]) == 1:
+            group_members.append({"id": member_id, "line_up_id": 0})
             print(f"Adding {[member_id, 0]}")
 
         else:
             print(artist_database[member_id])
 
             line_ups = "\n"
-            for i, line_up in enumerate(artist_database[member_id]["members"]):
-                line_up = [artist_database[l[0]]["names"][0] for l in line_up]
+            for i, line_up in enumerate(artist_database[member_id]["line_ups"]):
+                line_up = [
+                    artist_database[member["id"]]["name"]
+                    for member in line_up["members"]
+                ]
                 line_ups += f"{i}: {', '.join(line_up)}\n"
             line_up_id = ask_integer_input(
                 f"Please select the line up you want to add as a member:{line_ups}",
-                range(len(artist_database[member_id]["members"])),
+                range(len(artist_database[member_id]["line_ups"])),
             )
             group_members.append([member_id, line_up_id])
             print(f"Adding {[member_id, line_up_id]}")
@@ -185,17 +345,36 @@ def ask_line_up(
 
 
 def update_line_up(group, line_up_id, song_database, artist_database):
+    """
+    Update a line up
+
+    Parameters
+    ----------
+    group : dict
+        The group to update
+    line_up_id : int
+        The line up ID to update
+    song_database : SongDatabase
+        The song database
+    artist_database : ArtistDatabase
+        The artist database
+
+    Returns
+    -------
+    list
+        The updated line up
+    """
 
     group_members = []
 
-    for member in group["members"][line_up_id]:
+    for member in group["line_ups"][line_up_id]["members"]:
         user_input = ""
         while user_input not in ["=", "-"]:
-            user_input = input(f"{artist_database[member[0]]['names'][0]} ? (=/-)\n")
+            user_input = input(f"{artist_database[member['id']]['name']} ? (=/-)\n")
             if user_input == "=":
                 group_members.append(member)
             else:
-                print(f"removing {artist_database[member[0]]['names'][0]}")
+                print(f"removing {artist_database[member['id']]['name']}")
 
     line_up = ask_line_up(
         "Select people to add to the line up\n",
@@ -207,51 +386,101 @@ def update_line_up(group, line_up_id, song_database, artist_database):
     return group_members
 
 
-def add_new_artist_to_DB(artist_database, artist, vocalist=True, composing=False):
+def add_new_artist_to_DB(
+    artist_database, artist, vocalist=True, performer=False, composing=False
+):
+
+    """
+    Add a new artist to the artist database
+
+    Parameters
+    ----------
+    artist_database : ArtistDatabase
+        The artist database
+    artist : str
+        The artist name
+    vocalist : bool, optional
+        Whether the artist is a vocalist, by default True
+    performer : bool, optional
+        Whether the artist is a performer, by default False
+    composing : bool, optional
+        Whether the artist is a composer, by default False
+
+    Returns
+    -------
+    str
+        The new artist ID
+    """
+
     new_id = str(int(list(artist_database.keys())[-1]) + 1)
     if new_id not in artist_database:
         artist_database[new_id] = {
-            "names": [artist],
+            "name": artist,
+            "amqNames": [artist],
+            "altNames": [],
             "groups": [],
-            "members": [],
+            "line_ups": [],
             "vocalist": vocalist,
+            "performer": performer,
             "composer": composing,
         }
     return new_id
 
 
-def add_new_composer_to_DB(artist_database, artist):
-    new_id = str(int(list(artist_database.keys())[-1]) + 1)
-    if new_id not in artist_database:
-        artist_database[new_id] = {
-            "names": [artist],
-            "groups": [],
-            "members": [],
-            "vocalist": False,
-            "composer": True,
-        }
-    return new_id
-
-
 def get_example_song_for_artist(song_database, artist_id):
+    """
+    Get example songs for an artist
+
+    Parameters
+    ----------
+    song_database : SongDatabase
+        The song database
+    artist_id : str
+        The artist ID
+
+    Returns
+    -------
+    list
+        The list of example songs
+    """
 
     example_animes = set()
-    for anime in song_database:
+    for anime_annId in song_database:
+        anime = song_database[anime_annId]
         for song in anime["songs"]:
-            if artist_id in [aid[0] for aid in song["artist_ids"]] + [
-                cid[0] for cid in song["composer_ids"]
-            ] + [arid[0] for arid in song["arranger_ids"]]:
+            if artist_id in [aid["id"] for aid in song["vocalists"]] + [
+                pid["id"] for pid in song["performers"]
+            ] + [cid["id"] for cid in song["composers"]] + [
+                arid["id"] for arid in song["arrangers"]
+            ]:
                 example_animes.add(anime["animeExpandName"])
                 break
     return list(example_animes)
 
 
 def get_recap_artists(song_database, artist_database, ids):
+    """
+    Get a recap string for the artists given in parameters
+
+    Parameters
+    ----------
+    song_database : SongDatabase
+        The song database
+    artist_database : ArtistDatabase
+        The artist database
+    ids : list
+        The list of artist IDs
+
+    Returns
+    -------
+    str
+        The recap string
+    """
 
     recap_str = ""
     for id in ids:
         ex_animes = get_example_song_for_artist(song_database, id)
-        recap_str += f"{id} {artist_database[id]['names'][0]}> {' | '.join(ex_animes[:min(3, len(ex_animes))])}\n"
+        recap_str += f"{id} {artist_database[id]['name']}> {' | '.join(ex_animes[:min(3, len(ex_animes))])}\n"
     return recap_str
 
 
@@ -266,6 +495,30 @@ def get_artist_id(
     exact_match=False,
     excluded_ids=[],
 ):
+    """
+    Get the artist ID from the artist name
+
+    Parameters
+    ----------
+    song_database : SongDatabase
+        The song database
+    artist_database : ArtistDatabase
+        The artist database
+    artist : str
+        The artist name
+    not_exist_ok : bool, optional
+        Whether the artist can be not in the database, and to create a new one, by default False
+    vocalist : bool, optional
+        Whether the artist is a vocalist, by default True
+    composing : bool, optional
+        Whether the artist is a composer, by default False
+    partial_match : bool, optional
+        Whether to allow partial match, by default False
+    exact_match : bool, optional
+        Whether to allow exact match, by default False
+    excluded_ids : list, optional
+        The list of excluded IDs, by default []
+    """
 
     ids = []
     if not exact_match:
@@ -276,7 +529,9 @@ def get_artist_id(
 
             for id in artist_database.keys():
                 flag = False
-                for name in artist_database[id]["names"]:
+                for name in (
+                    artist_database[id]["amqNames"] + artist_database[id]["altNames"]
+                ):
                     if re.match(artist_regex, name, re.IGNORECASE):
                         flag = True
                 if flag:
@@ -289,7 +544,9 @@ def get_artist_id(
             ids = []
             for id in artist_database.keys():
                 flag = False
-                for name in artist_database[id]["names"]:
+                for name in (
+                    artist_database[id]["amqNames"] + artist_database[id]["altNames"]
+                ):
                     if re.match(artist_regex, name, re.IGNORECASE):
                         flag = True
                 if flag:
@@ -298,7 +555,11 @@ def get_artist_id(
     else:
 
         for id in artist_database.keys():
-            if artist in artist_database[id]["names"] and id not in ids:
+            if (
+                artist
+                in artist_database[id]["amqNames"] + artist_database[id]["altNames"]
+                and id not in ids
+            ):
                 ids.append(id)
 
     # if no IDs found

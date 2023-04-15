@@ -2,8 +2,8 @@ import json
 import utils
 
 
-song_database_path = "../../app/data/song_database.json"
-artist_database_path = "../../app/data/artist_database.json"
+song_database_path = "../app/data/song_database.json"
+artist_database_path = "../app/data/artist_database.json"
 
 with open(song_database_path, encoding="utf-8") as json_file:
     song_database = json.load(json_file)
@@ -11,28 +11,79 @@ with open(artist_database_path, encoding="utf-8") as json_file:
     artist_database = json.load(json_file)
 
 
-def add_member_group_links(group_id, group_members, line_up_id):
-    # add new group link to new line up members
+def add_member_group_links(group_id, relation_type, group_members, line_up_id):
+    """add new group link to new line up vocalist
+
+    Parameters
+    ----------
+    group_id : int
+        group id
+    relation_type : str
+        relation type (vocalists, performers, composers, arrangers)
+    group_members : list
+        list of members in the new line up
+    line_up_id : int
+        line up id
+
+    Returns
+    -------
+    None
+    """
     for member in group_members:
         print(
-            f"adding link '{group_id},{line_up_id}' to {artist_database[member[0]]['names'][0]}"
+            f"adding link '{group_id},{line_up_id}' to {artist_database[member['id']]['name']}"
         )
-        artist_database[member[0]]["groups"].append([group_id, line_up_id])
-        artist_database[member[0]]["vocalist"] = True
+        artist_database[member["id"]]["groups"].append(
+            {"type": relation_type, "id": group_id, "line_up_id": line_up_id}
+        )
+        artist_database[member["id"]][relation_type] = True
 
 
 def remove_member_group_links(group_id, line_up_id):
+    """
+    remove group link from old line up
+
+    Parameters
+    ----------
+    group_id : int
+        group id
+    line_up_id : int
+        line up id
+
+    Returns
+    -------
+    None
+    """
+
     group = artist_database[group_id]
-    for member in group["members"][line_up_id]:
-        for j, groupT in enumerate(artist_database[member[0]]["groups"]):
-            if groupT[0] == group_id and groupT[1] == line_up_id:
+    for member in group["line_ups"][line_up_id]["members"]:
+        for j, groupT in enumerate(artist_database[member["id"]]["groups"]):
+            if groupT["id"] == group_id and groupT["line_up_id"] == line_up_id:
                 print(
-                    f"removed link '{group_id},{line_up_id}' from {artist_database[member[0]]['names'][0]}"
+                    f"removed link '{group_id},{line_up_id}' from {artist_database[member['id']]['name']}"
                 )
-                artist_database[member[0]]["groups"].pop(j)
+                artist_database[member["id"]]["groups"].pop(j)
 
 
-def update_new_line_up_in_song_database(group_id, line_up_id, update_songs, mode):
+def update_new_line_up_in_song_database(
+    group_id, relation_type, line_up_id, update_songs, mode
+):
+    """
+    Update the song database with the new line up
+
+    Parameters
+    ----------
+    group_id : int
+        group id
+    relation_type : str
+        relation type (vocalists, performers, composers, arrangers)
+    line_up_id : int
+        line up id
+    update_songs : list
+        list of songs to update
+    mode : str
+        mode of update (edit, addAll, addSub)
+    """
 
     if mode not in ["edit", "addAll", "addSub"]:
         print("CHOOSE A CORRECT MODE")
@@ -40,27 +91,29 @@ def update_new_line_up_in_song_database(group_id, line_up_id, update_songs, mode
 
     print("\nUpdated Song:")
     if mode == "addAll":
-        for anime in song_database:
+        for anime_annId in song_database:
+            anime = song_database[anime_annId]
             for song in anime["songs"]:
-                for artist in song["artist_ids"]:
-                    if artist[0] == group_id:
+                for artist in song[relation_type]:
+                    if artist["id"] == group_id:
                         print(song["songName"])
-                        artist[1] = line_up_id
+                        artist["line_up_id"] = line_up_id
         print()
         return
 
     if mode == "addSub":
         for update_song in update_songs:
             flag_song = False
-            for anime in song_database:
+            for anime_annId in song_database:
+                anime = song_database[anime_annId]
                 for song in anime["songs"]:
                     if utils.check_same_song(song, update_song):
                         flag_artist = False
-                        for aid in song["artist_ids"]:
-                            if group_id == aid[0]:
+                        for artist in song[relation_type]:
+                            if group_id == artist["id"]:
                                 flag_song = True
                                 flag_artist = True
-                                aid[1] = line_up_id
+                                artist["line_up_id"] = line_up_id
                                 print(song["songName"])
                         if not flag_artist:
                             print(f"{update_song} FOUND BUT NOT THE RIGHT ARTIST")
@@ -70,63 +123,116 @@ def update_new_line_up_in_song_database(group_id, line_up_id, update_songs, mode
     print()
 
 
-def remove_line_up(group_id, line_up_id, fall_back_line_up):
+def remove_line_up(group_id, relation_type, line_up_id, fall_back_line_up):
+    """
+    Remove a line up from a group
+
+    Parameters
+    ----------
+    group_id : int
+        group id from which to remove line up
+    relation_type : str
+        relation type (vocalists, performers, composers, arrangers)
+    line_up_id : int
+        line up id to remove
+    fall_back_line_up : int
+        line up id to fall back to
+
+    Returns
+    -------
+    None
+    """
 
     # song - artist links
     print()
-    for anime in song_database:
+
+    for anime_annId in song_database:
+        anime = song_database[anime_annId]
         for song in anime["songs"]:
-            for artist in song["artist_ids"]:
-                if artist[0] != group_id:
-                    continue
-                # Update song - artist links for removed line up
-                if artist[1] == line_up_id:
-                    print(f"{song['songName']} : {artist[1]} → {fall_back_line_up}")
-                    artist[1] = fall_back_line_up
-                # Update song - artist links for above line ups that got shifted
-                elif artist[1] > line_up_id:
-                    print(f"{song['songName']} : {artist[1]} → {artist[1]-1}")
-                    artist[1] -= 1
+            if relation_type:
+                for artist in song[relation_type]:
+                    if artist["id"] != group_id:
+                        continue
+                    # Update song - artist links for removed line up
+                    if artist["line_up_id"] == line_up_id:
+                        print(
+                            f"{song['songName']} : {artist['line_up_id']} → {fall_back_line_up}"
+                        )
+                        artist["line_up_id"] = fall_back_line_up
+                    # Update song - artist links for above line ups that got shifted
+                    # TODO : problem when different relation_type
+                    elif artist["line_up_id"] > line_up_id:
+                        print(
+                            f"{song['songName']} : {artist['line_up_id']} → {artist['line_up_id']-1}"
+                        )
+                        artist["line_up_id"] -= 1
+            else:
+                for artist in (
+                    song["vocalists"]
+                    + song["performers"]
+                    + song["composers"]
+                    + song["arrangers"]
+                ):
+                    if artist["id"] != group_id:
+                        continue
+                    # Update song - artist links for removed line up
+                    if artist["line_up_id"] == line_up_id:
+                        print(
+                            f"{song['songName']} : {artist['line_up_id']} → {fall_back_line_up}"
+                        )
+                        artist["line_up_id"] = fall_back_line_up
+                    # Update song - artist links for above line ups that got shifted
+                    elif artist["line_up_id"] > line_up_id:
+                        print(
+                            f"{song['songName']} : {artist['line_up_id']} → {artist['line_up_id']-1}"
+                        )
+                        artist["line_up_id"] -= 1
 
     print()
     # Remove artist - group links for line up
-    for member in artist_database[group_id]["members"][line_up_id]:
-        for i, group in enumerate(artist_database[member[0]]["groups"]):
-            if group[0] == group_id and group[1] == line_up_id:
+    for member in artist_database[group_id]["line_ups"][line_up_id]["members"]:
+        for i, group in enumerate(artist_database[member["id"]]["groups"]):
+            if group["id"] == group_id and group["line_up_id"] == line_up_id:
                 print(
-                    f"Removing artist - group link for {artist_database[member[0]]['names'][0]}, {line_up_id}"
+                    f"Removing artist - group link for {artist_database[member['id']]['name']}, {line_up_id}"
                 )
-                artist_database[member[0]]["groups"].pop(i)
+                artist_database[member["id"]]["groups"].pop(i)
 
     print()
     # Update artist - group links for above line-up that got shifted
-    for line_up in artist_database[group_id]["members"][line_up_id:]:
-        for member in line_up:
-            for group in artist_database[member[0]]["groups"]:
-                if group[0] == group_id and group[1] > line_up_id:
+    for line_up in artist_database[group_id]["line_ups"][line_up_id:]:
+        for member in line_up["members"]:
+            for group in artist_database[member["id"]]["groups"]:
+                if group["id"] == group_id and group["line_up_id"] > line_up_id:
+                    # TODO : problem with relation types
                     print(
-                        f"Updating link for {artist_database[member[0]]['names'][0]}: {group[1]}→{group[1]-1}"
+                        f"Updating link for {artist_database[member['id']]['name']}: {group['line_up_id']}→{group['line_up_id']-1}"
                     )
-                    group[1] -= 1
+                    group["line_up_id"] -= 1
 
     print()
     # Update line-up for topGroup containing the affected group
     for artist_id in artist_database:
         artist = artist_database[artist_id]
-        for line_up in artist["members"]:
-            for member in line_up:
-                if member[0] != group_id:
+        for line_up in artist["line_ups"]:
+            for member in line_up["members"]:
+                if member["id"] != group_id:
                     continue
                 # Update group - member links for removed line up
-                if member[1] == line_up_id:
-                    print(f"{artist['names'][0]} : {member[1]} → {fall_back_line_up}")
-                    member[1] = fall_back_line_up
+                if member["line_up_id"] == line_up_id:
+                    print(
+                        f"{artist['name']} : {member['line_up_id']} → {fall_back_line_up}"
+                    )
+                    member["line_up_id"] = fall_back_line_up
                 # Update group - member links for above line ups that got shifted
-                elif member[1] > line_up_id:
-                    print(f"{artist['names'][0]} : {member[1]} → {member[1]-1}")
-                    member[1] -= 1
+                elif member["line_up_id"] > line_up_id:
+                    # TODO : problem with relation types
+                    print(
+                        f"{artist['name']} : {member['line_up_id']} → {member['line_up_id']-1}"
+                    )
+                    member["line_up_id"] -= 1
 
-    artist_database[group_id]["members"].pop(line_up_id)
+    artist_database[group_id]["line_ups"].pop(line_up_id)
 
 
 def process():
@@ -138,12 +244,14 @@ def process():
     )
     group = artist_database[group_id]
 
-    print()
-
-    if not group["members"]:
+    if not group["line_ups"]:
 
         print(
-            f"No Line Up found for {group['names'][0]}, automatically adding to every songs\n"
+            f"No Line Up found for {group['name']}, automatically adding to every songs\n"
+        )
+
+        relation_type = utils.ask_relation_type(
+            "Please input the relation type of the new line up\n"
         )
 
         group_members = utils.ask_line_up(
@@ -157,29 +265,29 @@ def process():
             print("There are no members to add, cancelled")
             return
 
-        group_recap_str1 = f"group {group['names'][0]}: {' | '.join(utils.get_example_song_for_artist(song_database, group_id)[:min(3, len(utils.get_example_song_for_artist(song_database, group_id)))])}"
+        group_recap_str1 = f"group {group['name']}: {' | '.join(utils.get_example_song_for_artist(song_database, group_id)[:min(3, len(utils.get_example_song_for_artist(song_database, group_id)))])}"
 
         group_recap_str2 = ""
         for member in group_members:
-            if member[0] in artist_database:
-                group_recap_str2 += f"{artist_database[member[0]]['names'][0]} {member}> {' | '.join(utils.get_example_song_for_artist(song_database, member[0])[:min(3, len(utils.get_example_song_for_artist(song_database, member[0])))])}\n"
+            if member["id"] in artist_database:
+                group_recap_str2 += f"{artist_database[member['id']]['name']} {member['id']} {member['line_up_id']}> {' | '.join(utils.get_example_song_for_artist(song_database, member['id'])[:min(3, len(utils.get_example_song_for_artist(song_database, member['id'])))])}\n"
             else:
-                group_recap_str2 += f"NEW {member[0]}\n"
+                group_recap_str2 += f"NEW {member['id']}\n"
 
-        group["members"] = [group_members]
+        group["line_ups"] = [{"type": relation_type, "members": group_members}]
 
-        add_member_group_links(group_id, group_members, 0)
+        add_member_group_links(group_id, relation_type, group_members, 0)
 
         # change line up for any group containing this group as it is now a group
-        for artist in artist_database:
-            artist = artist_database[artist]
-            for line_up in artist["members"]:
-                for member in line_up:
-                    if member[0] == group_id:
-                        print(f"Swapping to line up 0 in {artist['names'][0]}")
-                        member[1] = 0
+        for artist_id in artist_database:
+            artist = artist_database[artist_id]
+            for line_up in artist["line_ups"]:
+                for member in line_up["members"]:
+                    if member["id"] == group_id:
+                        print(f"Swapping to line up 0 in {artist['name']}")
+                        member["line_up_id"] = 0
 
-        update_new_line_up_in_song_database(group_id, 0, [], "addAll")
+        update_new_line_up_in_song_database(group_id, relation_type, 0, [], "addAll")
 
         validation_message = f"You will add the first line-up to every song by the {group_recap_str1}\nThe line up is composed of:\n{group_recap_str2}\nDo you validate this change ?\n"
         validation = utils.ask_validation(validation_message)
@@ -194,36 +302,40 @@ def process():
         )
         if validation:
 
-            # skip user input as there's no question needed
-            if len(group["members"]) == 1:
+            # skip user input as there's no question needed if only one line up
+            if len(group["line_ups"]) == 1:
 
-                remove_line_up(group_id, 0, -1)
+                remove_line_up(group_id, None, 0, -1)
 
             else:
 
-                print(range(len(group["members"])))
-
                 line_ups = "\n"
-                for i, line_up in enumerate(group["members"]):
-                    line_up = [artist_database[l[0]]["names"][0] for l in line_up]
+                for i, line_up in enumerate(group["line_ups"]):
+                    line_up = [
+                        artist_database[member["id"]]["name"]
+                        for member in line_up["members"]
+                    ]
                     line_ups += f"{i}: {', '.join(line_up)}\n"
                 line_up_id = utils.ask_integer_input(
                     f"Please select the line up you want to remove:{line_ups}",
-                    range(len(group["members"])),
+                    range(len(group["line_ups"])),
                 )
 
                 line_ups = "\n"
-                tmp_line_up = group["members"].copy()
+                tmp_line_up = group["line_ups"].copy()
                 tmp_line_up.pop(line_up_id)
                 for i, line_up in enumerate(tmp_line_up):
-                    line_up = [artist_database[l[0]]["names"][0] for l in line_up]
+                    line_up = [
+                        artist_database[member["id"]]["name"]
+                        for member in line_up["members"]
+                    ]
                     line_ups += f"{i}: {', '.join(line_up)}\n"
                 fall_back_line_up = utils.ask_integer_input(
                     f"Please select to which line up should the song fall back to:{line_ups}",
-                    range(len(group["members"]) - 1),
+                    range(len(group["line_ups"]) - 1),
                 )
 
-                remove_line_up(group_id, line_up_id, fall_back_line_up)
+                remove_line_up(group_id, None, line_up_id, fall_back_line_up)
 
             validation_message = "Do you validate those changes ?\n"
             validation = utils.ask_validation(validation_message)
@@ -234,13 +346,19 @@ def process():
         else:
 
             line_ups = "\n"
-            for i, line_up in enumerate(group["members"]):
-                line_up = [artist_database[l[0]]["names"][0] for l in line_up]
+            for i, line_up in enumerate(group["line_ups"]):
+                line_up = [
+                    artist_database[member["id"]]["name"]
+                    for member in line_up["members"]
+                ]
                 line_ups += f"{i}: {', '.join(line_up)}\n"
+
             line_up_id = utils.ask_integer_input(
                 f"There are already line-ups linked to this group, input the one you want to update or -1 if you want to add a new one:\n{line_ups}",
-                range(-1, len(group["members"])),
+                range(-1, len(group["line_ups"])),
             )
+
+            relation_type = group["line_ups"][line_up_id]["type"]
 
             if line_up_id != -1:
 
@@ -257,18 +375,20 @@ def process():
                     print("There are no members to add, cancelled")
                     return
 
-                group_recap_str1 = f"group {group['names'][0]}: {' | '.join(utils.get_example_song_for_artist(song_database, group_id)[:min(3, len(utils.get_example_song_for_artist(song_database, group_id)))])}"
+                group_recap_str1 = f"group {group['name']}: {' | '.join(utils.get_example_song_for_artist(song_database, group_id)[:min(3, len(utils.get_example_song_for_artist(song_database, group_id)))])}"
 
                 group_recap_str2 = ""
                 for member in group_members:
-                    if member[0] in artist_database:
-                        group_recap_str2 += f"{artist_database[member[0]]['names'][0]} {member}> {' | '.join(utils.get_example_song_for_artist(song_database, member[0])[:min(3, len(utils.get_example_song_for_artist(song_database, member[0])))])}\n"
+                    if member["id"] in artist_database:
+                        group_recap_str2 += f"{artist_database[member['id']]['name']} {member}> {' | '.join(utils.get_example_song_for_artist(song_database, member['id'])[:min(3, len(utils.get_example_song_for_artist(song_database, member['id'])))])}\n"
                     else:
-                        group_recap_str2 += f"NEW {member[0]}\n"
+                        group_recap_str2 += f"NEW {member['id']}\n"
 
                 remove_member_group_links(group_id, line_up_id)
 
-                add_member_group_links(group_id, group_members, line_up_id)
+                add_member_group_links(
+                    group_id, relation_type, group_members, line_up_id
+                )
 
                 print(
                     "Select the songs you want to update, if already linked: removed if not already linked: added to line up\n"
@@ -276,10 +396,13 @@ def process():
                 linked_songs = utils.ask_song_ids()
 
                 update_new_line_up_in_song_database(
-                    group_id, line_up_id, linked_songs, "addSub"
+                    group_id, relation_type, line_up_id, linked_songs, "addSub"
                 )
 
-                group["members"][line_up_id] = group_members
+                group["line_ups"][line_up_id] = {
+                    "type": relation_type,
+                    "members": group_members,
+                }
 
                 validation_message = f"You will update line-up n°{line_up_id} of the {group_recap_str1}\nThis line up will be composed of:\n{group_recap_str2}\nDo you validate this change ?\n"
                 validation = utils.ask_validation(validation_message)
@@ -290,6 +413,10 @@ def process():
             else:
 
                 print("Creating a new line up\n")
+
+                relation_type = utils.ask_relation_type(
+                    "Please input the relation type of the new line up\n"
+                )
 
                 group_members = utils.ask_line_up(
                     "Please type in the members you want to add\n",
@@ -302,16 +429,16 @@ def process():
                     print("There are no members to add, cancelled")
                     return
 
-                group_recap_str1 = f"group {group['names'][0]}: {' | '.join(utils.get_example_song_for_artist(song_database, group_id)[:min(3, len(utils.get_example_song_for_artist(song_database, group_id)))])}"
+                group_recap_str1 = f"group {group['name']}: {' | '.join(utils.get_example_song_for_artist(song_database, group_id)[:min(3, len(utils.get_example_song_for_artist(song_database, group_id)))])}"
 
                 group_recap_str2 = ""
                 for member in group_members:
-                    if member[0] in artist_database:
-                        group_recap_str2 += f"{artist_database[member[0]]['names'][0]} {member}> {' | '.join(utils.get_example_song_for_artist(song_database, member[0])[:min(3, len(utils.get_example_song_for_artist(song_database, member[0])))])}\n"
+                    if member["id"] in artist_database:
+                        group_recap_str2 += f"{artist_database[member['id']]['name']} {member}> {' | '.join(utils.get_example_song_for_artist(song_database, member['id'])[:min(3, len(utils.get_example_song_for_artist(song_database, member['id'])))])}\n"
                     else:
-                        group_recap_str2 += f"NEW {member[0]}\n"
+                        group_recap_str2 += f"NEW {member['id']}\n"
 
-                line_up_id = len(group["members"])
+                line_up_id = len(group["line_ups"])
 
                 linked_songs = utils.ask_song_ids()
 
@@ -323,12 +450,16 @@ def process():
                         print("USER CANCELLED")
                         return
 
-                add_member_group_links(group_id, group_members, line_up_id)
+                add_member_group_links(
+                    group_id, relation_type, group_members, line_up_id
+                )
 
-                group["members"].append(group_members)
+                group["line_ups"].append(
+                    {"type": relation_type, "members": group_members}
+                )
 
                 update_new_line_up_in_song_database(
-                    group_id, line_up_id, linked_songs, "addSub"
+                    group_id, relation_type, line_up_id, linked_songs, "addSub"
                 )
 
                 validation_message = f"You will add a new line-up (n°{line_up_id}) to the {group_recap_str1}\non the songs {linked_songs}\nThis line up will be composed of:\n{group_recap_str2}\nDo you validate this change ?\n"

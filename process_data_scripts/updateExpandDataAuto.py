@@ -8,7 +8,7 @@ from datetime import datetime
 import time, json, re
 import sys, os, getopt
 import splitting
-from updatersWrapper import utils
+import utils
 
 splitters = splitting.splitters
 secondary_splitters = splitting.secondary_splitters
@@ -16,6 +16,21 @@ splitting_exception = splitting.splitting_exception
 
 
 def check_validity(song_database, splitting_exception):
+    """
+    Check if the splitting exception is valid
+
+    Parameters
+    ----------
+    song_database : list of dict
+        The song database
+    splitting_exception : list of str
+        The splitting exception
+
+    Returns
+    -------
+    bool
+        True if the splitting exception is valid, False otherwise
+    """
 
     is_valid = True
 
@@ -30,7 +45,8 @@ def check_validity(song_database, splitting_exception):
     for exception in splitting_exception:
         flag_valid = False
         flag_maybe_valid = False
-        for anime in song_database:
+        for anime_annId in song_database:
+            anime = song_database[anime_annId]
             for song in anime["songs"]:
                 if song["songArtist"] == exception:
                     flag_valid = True
@@ -61,6 +77,19 @@ def help():
 
 
 def main(argv):
+    """
+    Main function
+
+    Parameters
+    ----------
+    argv : list of str
+        The arguments passed to the script
+
+    Returns
+    -------
+    bool
+        True if the script should update the expand data, False otherwise
+    """
 
     update = False
 
@@ -80,7 +109,19 @@ def main(argv):
 
 
 def add_log(log):
-    """Append given text as a new line at the end of file"""
+    """
+    Append given text as a new line at the end of file
+
+    Parameters
+    ----------
+    log : str
+        The log to add
+
+    Returns
+    -------
+    None
+    """
+
     print(log)
     # Open the file in append & read mode ('a+')
     with open("updateLogs.txt", "a+", encoding="utf-8") as file_object:
@@ -128,6 +169,24 @@ waitForExpandLoaded().then((result) => {
 
 
 def selenium_retrieve_data(amq_url, amq_username, amq_password):
+    """
+    Retrieve the expand data from AMQ using selenium
+
+    Parameters
+    ----------
+    amq_url : str
+        The url of AMQ
+    amq_username : str
+        The username of AMQ
+    amq_password : str
+        The password of AMQ
+
+    Returns
+    -------
+    str
+        The expand data
+    """
+
     # create driver and open amq
     option = webdriver.ChromeOptions()
     # option.add_argument("headless")
@@ -146,6 +205,7 @@ def selenium_retrieve_data(amq_url, amq_username, amq_password):
         element = WebDriverWait(driver, 120).until(
             EC.presence_of_element_located((By.ID, "mainMenu"))
         )
+        time.sleep(1.5)
         add_log("Connected to AMQ")
 
     finally:
@@ -171,6 +231,21 @@ def selenium_retrieve_data(amq_url, amq_username, amq_password):
 
 
 def similar_song_exist(source_anime, new_song):
+    """
+    Check if a similar song already exist in the source anime
+
+    Parameters
+    ----------
+    source_anime : dict
+        The anime to check
+    new_song : dict
+        The song to check
+
+    Returns
+    -------
+    bool
+        True if a similar song exist, False otherwise
+    """
 
     for song in source_anime["songs"]:
         if song["annSongId"] == -1 and (
@@ -182,6 +257,24 @@ def similar_song_exist(source_anime, new_song):
 
 
 def format_new_song(song_database, artist_database, song):
+    """
+    Format the new song to be added to song database
+
+    Parameters
+    ----------
+    song_database : dict
+        The song database
+    artist_database : dict
+        The artist database
+    song : dict
+        The song to format
+
+    Returns
+    -------
+    dict
+        The formatted song
+    """
+
     new_song = {
         "annSongId": song["annSongId"],
         "songType": song["type"],
@@ -198,20 +291,34 @@ def format_new_song(song_database, artist_database, song):
     splitted_artist = split_artist(new_song["songArtist"])
     add_log(f"{new_song['songArtist']} -> {splitted_artist}")
 
-    new_song["artist_ids"] = []
+    new_song["vocalists"] = []
     for artist_id in get_artist_id_list(
         song_database, artist_database, splitted_artist
     ):
         line_up_id = -1
-        if artist_database[artist_id]["members"]:
+        if artist_database[artist_id]["line_ups"]:
             line_up_id = 0
-        new_song["artist_ids"].append([artist_id, line_up_id])
-    new_song["composer_ids"] = []
-    new_song["arranger_ids"] = []
+        new_song["vocalists"].append({"id": artist_id, "line_up_id": line_up_id})
+    new_song["performers"] = []
+    new_song["composers"] = []
+    new_song["arrangers"] = []
     return new_song
 
 
 def split_artist(artist):
+    """
+    Split an artist into a list of artists
+
+    Parameters
+    ----------
+    artist : str
+        The artist to split
+
+    Returns
+    -------
+    list
+        The list of splitted artists
+    """
 
     # if forced exception splitting do it:
     if artist in splitting_exception.keys():
@@ -231,6 +338,23 @@ def split_artist(artist):
 
 
 def get_artist_id_list(song_database, artist_database, artist_list):
+    """
+    Get the artist id list from the artist list
+
+    Parameters
+    ----------
+    song_database : dict
+        The song database
+    artist_database : dict
+        The artist database
+    artist_list : list
+        The list of artists
+
+    Returns
+    -------
+    list
+        The list of artist ids
+    """
 
     artist_id_list = []
 
@@ -249,6 +373,24 @@ def get_artist_id_list(song_database, artist_database, artist_list):
 
 
 def update_artist_names(song_database, artist_database, old_name, new_name):
+    """
+    Update the artist names in the artist database
+
+    Parameters
+    ----------
+    song_database : dict
+        The song database
+    artist_database : dict
+        The artist database
+    old_name : str
+        The old name of the artist
+    new_name : str
+        The new name of the artist
+
+    Returns
+    -------
+    None
+    """
 
     old_names = split_artist(old_name)
     new_names = split_artist(new_name)
@@ -269,51 +411,103 @@ def update_artist_names(song_database, artist_database, old_name, new_name):
         if artist_id == -1:
             continue
 
-        if new not in artist_database[artist_id]["names"]:
-            add_log(f"+{new} ← {artist_id}")
-            artist_database[artist_id]["names"].append(new)
+        if new not in artist_database[artist_id]["amqNames"]:
+            add_log(f"+{new} ← {artist_id} (amq)")
+            artist_database[artist_id]["amqNames"].append(new)
+
+        if new in artist_database[artist_id]["altNames"]:
+            add_log(f"-{new} ← {artist_id} (alt)")
+            artist_database[artist_id]["altNames"].pop(
+                artist_database[artist_id]["altNames"].index(new)
+            )
+
+        if old == artist_database[artist_id]["name"]:
+            add_log(f"swap{old} ← {new} (main)")
+            artist_database[artist_id]["name"] = new
 
         nb_songs = 0
-        for anime in song_database:
+        for anime_annId in song_database:
+            anime = song_database[anime_annId]
             for song in anime["songs"]:
-                if artist_id not in [id[0] for id in song["artist_ids"]]:
+                if artist_id not in [
+                    artist["id"]
+                    for artist in song["vocalists"]
+                    + song["performers"]
+                    + song["composers"]
+                    + song["arrangers"]
+                ]:
                     continue
                 if old in song["songArtist"]:
                     nb_songs += 1
 
         if nb_songs <= 1:
-            if old in artist_database[artist_id]["names"]:
+            if old in artist_database[artist_id]["amqNames"]:
                 add_log(f"-{old} ← {artist_id}")
-                artist_database[artist_id]["names"].pop(
-                    artist_database[artist_id]["names"].index(old)
+                artist_database[artist_id]["amqNames"].pop(
+                    artist_database[artist_id]["amqNames"].index(old)
                 )
             else:
                 print(f"WARNING {old} NOT FOUND")
         else:
             add_log(f"<CHECK> Keeping {old} in {artist_id}")
 
-        add_log(", ".join(artist_database[artist_id]["names"]))
+        add_log(
+            ", ".join(
+                [artist_database[artist_id]["name"]]
+                + artist_database[artist_id]["amqNames"]
+                + artist_database[artist_id]["altNames"]
+            )
+        )
         add_log("")
 
 
 def update_data_with_expand(song_database, artist_database, expand_data):
+    """
+    Update the song database with the expand data
+
+    Parameters
+    ----------
+    song_database : dict
+        The song database
+    artist_database : dict
+        The artist database
+    expand_data : dict
+        The expand data taken from AMQ
+
+    Returns
+    -------
+    None
+    """
 
     for update_anime in expand_data:
         for update_song in update_anime["songs"]:
-            flag_anime_found = False
+
             flag_song_found = False
-            for source_anime in song_database:
 
-                if source_anime["annId"] != update_anime["annId"]:
-                    continue
+            annId = str(update_anime["annId"])
+            if annId not in song_database.keys():
 
-                flag_anime_found = True
+                songs = []
+                add_log(f"ADD ANIME | {annId} - {update_anime['name']}")
+                for song in update_anime["songs"]:
+                    add_log(f"{song['name']} by {song['artist']}")
+                    new_song = format_new_song(song_database, artist_database, song)
+                    add_log(f"{new_song}\n")
+                    songs.append(new_song)
+                song_database[annId] = {
+                    "animeExpandName": update_anime["name"],
+                    "songs": songs,
+                    "alt_names": [],
+                }
+
+            else:
+                source_anime = song_database[annId]
 
                 if source_anime["animeExpandName"] != update_anime["name"]:
                     # add_log(f"UPDATE animeExpandName | {source_anime['animeExpandName']} -> {update_anime['name']}")
                     source_anime["animeExpandName"] = update_anime["name"]
 
-                for i, source_song in enumerate(source_anime["songs"]):
+                for source_song in source_anime["songs"]:
                     if source_song["annSongId"] != update_song["annSongId"]:
                         continue
                     flag_song_found = True
@@ -344,6 +538,7 @@ def update_data_with_expand(song_database, artist_database, expand_data):
                             update_song["artist"],
                         )
                         source_song["songArtist"] = update_song["artist"]
+
                     if (
                         "720" in update_song["examples"]
                         and "openings.moe" not in update_song["examples"]["720"]
@@ -355,6 +550,7 @@ def update_data_with_expand(song_database, artist_database, expand_data):
                     ):
                         # add_log(f"UPDATE 720 SONG LINKS | {source_song['annSongId']} {source_song['links']['HQ'] if 'HQ' in source_song['links'] else None} -> {update_song['examples']['720']}")
                         source_song["links"]["HQ"] = update_song["examples"]["720"]
+
                     if (
                         "480" in update_song["examples"]
                         and "openings.moe" not in update_song["examples"]["480"]
@@ -366,6 +562,7 @@ def update_data_with_expand(song_database, artist_database, expand_data):
                     ):
                         # add_log(f"UPDATE 480 SONG LINKS | {source_song['annSongId']} {source_song['links']['MQ'] if 'MQ' in source_song['links'] else None} -> {update_song['examples']['480']}")
                         source_song["links"]["MQ"] = update_song["examples"]["480"]
+
                     if "mp3" in update_song["examples"] and (
                         "audio" not in source_song["links"]
                         or source_song["links"]["audio"]
@@ -373,6 +570,7 @@ def update_data_with_expand(song_database, artist_database, expand_data):
                     ):
                         # add_log(f"UPDATE mp3 SONG LINKS | {source_song['annSongId']} {source_song['links']['audio'] if 'audio' in source_song['links'] else None} -> {update_song['examples']['mp3']}")
                         source_song["links"]["audio"] = update_song["examples"]["mp3"]
+
                     break
 
                 if flag_song_found:
@@ -389,24 +587,6 @@ def update_data_with_expand(song_database, artist_database, expand_data):
                 else:
                     add_log(f"{new_song}\n")
                 break
-
-            # if anime not found
-            if not flag_anime_found:
-                songs = []
-                add_log(f"ADD ANIME | {update_anime['annId']} - {update_anime['name']}")
-                for song in update_anime["songs"]:
-                    add_log(f"{song['name']} by {song['artist']}")
-                    new_song = format_new_song(song_database, artist_database, song)
-                    add_log(f"{new_song}\n")
-                    songs.append(new_song)
-                song_database.append(
-                    {
-                        "annId": update_anime["annId"],
-                        "animeExpandName": update_anime["name"],
-                        "songs": songs,
-                        "alt_names": [],
-                    }
-                )
 
 
 def process(update):
