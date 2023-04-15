@@ -1,6 +1,9 @@
 import json
 import utils
 
+"""
+A script to add/edit/remove line ups
+"""
 
 song_database_path = "../app/data/song_database.json"
 artist_database_path = "../app/data/artist_database.json"

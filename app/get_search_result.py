@@ -4,6 +4,10 @@ import timeit
 from datetime import datetime
 import re
 
+"""
+    This file contains the functions to search the database
+"""
+
 
 def add_main_log(
     anime_search_filters,
@@ -14,6 +18,31 @@ def add_main_log(
     ignore_duplicate,
     authorized_types,
 ):
+
+    """
+    Add a log to the log file
+
+    Parameters
+    ----------
+    anime_search_filters : Search_Filter
+        The anime search filter
+    song_name_search_filters : Search_Filter
+        The song name search filter
+    artist_search_filters : Search_Filter
+        The artist search filter
+    composer_search_filters : Search_Filter
+        The composer search filter
+    and_logic : bool
+        If the search should use AND logic
+    ignore_duplicate : bool
+        If the search should ignore duplicate songs
+    authorized_types : List[int]
+        The authorized types of songs
+
+    Returns
+    -------
+    None
+    """
 
     logs = {
         "date": str(datetime.now().strftime("%d/%m/%Y %H:%M:%S")),
@@ -55,6 +84,14 @@ def add_main_log(
 
 
 def is_ranked_time():
+    """
+    Returns true if it is ranked time
+
+    Returns
+    -------
+    bool
+        If it is ranked time
+    """
 
     date = datetime.utcnow()
     # If ranked time UTC
@@ -82,6 +119,18 @@ def is_ranked_time():
 def get_duplicate_in_list(list, song):
     """
     Returns the index of the duplicate song in the list
+
+    Parameters
+    ----------
+    list : List[Dict]
+        The list of songs
+    song : List
+        The song to check
+
+    Returns
+    -------
+    int
+        The index of the duplicate song in the list or -1 if there is no duplicate
     """
 
     for i, song2 in enumerate(list):
@@ -104,6 +153,32 @@ def combine_results(
 
     """
     Combine the results of the different search filters
+
+    Parameters
+    ----------
+    artist_database : Dict
+        The artist database
+    annId_songs_list : List[List]
+        The list of songs from the ANN ID search filter
+    anime_songs_list : List[List]
+        The list of songs from the anime search filter
+    songName_songs_list : List[List]
+        The list of songs from the song name search filter
+    artist_songs_list : List[List]
+        The list of songs from the artist search filter
+    composer_songs_list : List[List]
+        The list of songs from the composer search filter
+    and_logic : bool, optional
+        If the search should use AND logic, by default False
+    ignore_duplicate : bool, optional
+        If the search should ignore duplicate songs, by default False
+    max_nb_songs : int, optional
+        The maximum number of songs to return, by default 300
+
+    Returns
+    -------
+    List[Dict]
+        The list of songs combined from the different search filters
     """
 
     songId_done = []
@@ -155,7 +230,23 @@ def combine_results(
 
 def get_member_list_flat(art_database, artists, bottom=True):
 
-    # If bottom: will skip subgroups and go directly to the lower tier possible
+    """
+    get a list of all the members of a group and its subgroups
+
+    Parameters
+    ----------
+    art_database : Dict
+        The artist database
+    artists : List[Tuple[str, int]]
+        The list of artists and their line up
+    bottom : bool, optional
+        If True, will skip subgroups and go directly to the lower tier possible, by default True
+
+    Returns
+    -------
+    List[int]
+        The list of all the members of the group and its subgroups
+    """
 
     member_list = []
 
@@ -180,6 +271,21 @@ def get_member_list_flat(art_database, artists, bottom=True):
 
 
 def compare_two_artist_list(list1, list2):
+    """
+    Compare two lists of artists
+
+    Parameters
+    ----------
+    list1 : List[int]
+        The first list of artists
+    list2 : List[int]
+        The second list of artists
+
+    Returns
+    -------
+    Tuple[int, int]
+        The amount of people present in both lists and the amount of people in list1 that are not in list2
+    """
 
     same_count = 0  # amount of people present in both
     add_count = 0  # additional people in list1 compared to list2
@@ -196,6 +302,27 @@ def compare_two_artist_list(list1, list2):
 def check_meets_artists_requirements(
     artist_database, song, artist_ids, group_granularity, max_other_artist
 ):
+    """
+    Check if a song meets the artist requirements
+
+    Parameters
+    ----------
+    artist_database : Dict
+        The artist database
+    song : List
+        The song to check
+    artist_ids : List[int]
+        The list of artist IDs to check
+    group_granularity : int
+        The group granularity
+    max_other_artist : int
+        The maximum number of other artists
+
+    Returns
+    -------
+    bool
+        If the song meets the artist requirements
+    """
 
     song_artists = [
         [artist, int(line_up)]
@@ -228,6 +355,23 @@ def check_meets_artists_requirements(
 
 
 def get_song_list_from_songIds_JSON(song_database, songIds, authorized_types):
+    """
+    Get the list of songs from a list of songIds
+
+    Parameters
+    ----------
+    song_database : Dict
+        The song database
+    songIds : List[str]
+        The list of songIds
+    authorized_types : List[str]
+        The list of authorized types
+
+    Returns
+    -------
+    List[Dict]
+        The list of songs
+    """
 
     song_list = []
 
@@ -248,6 +392,35 @@ def process_artist(
     group_granularity,
     max_other_artist,
 ):
+    """
+    Process the artist
+
+    Parameters
+    ----------
+    cursor : sqlite3.Cursor
+        The cursor to the database
+    song_database : Dict
+        The song database
+    artist_database : Dict
+        The artist database
+    search : str
+        The search string
+    partial_match : bool
+        If True, will search for partial match
+    authorized_types : List[str]
+        The list of authorized types
+    group_granularity : int
+        The group granularity
+    max_other_artist : int
+        The maximum number of other artist
+
+    Returns
+    -------
+    List[Dict]
+        The list of songs
+    List[int
+        The list of artist IDs
+    """
 
     artist_search = utils.get_regex_search(search, partial_match, swap_words=True)
 
@@ -313,6 +486,33 @@ def get_search_results(
     max_nb_songs,
     authorized_types,
 ):
+    """
+    Get the search results from the database
+
+    Parameters
+    ----------
+    anime_search_filters : List[str]
+        The list of anime filters
+    song_name_search_filters : List[str]
+        The list of song name filters
+    artist_search_filters : List[str]
+        The list of artist filters
+    composer_search_filters : List[str]
+        The list of composer filters
+    and_logic : bool
+        If the search should be done with AND logic
+    ignore_duplicate : bool
+        If the search should ignore duplicate songs
+    max_nb_songs : int
+        The maximum number of songs to return
+    authorized_types : List[str]
+        The list of authorized types
+
+    Returns
+    -------
+    List[Dict[str, Any]]
+        The list of songs
+    """
 
     startstart = timeit.default_timer()
 
@@ -504,6 +704,28 @@ def get_artists_ids_song_list(
     authorized_types,
 ):
 
+    """
+    Get the list of songs from a list of artist ids
+
+    Parameters
+    ----------
+    artist_ids : list
+        List of artist ids
+    max_other_artist : int
+        Maximum number of other artists that can sings along the searched artists
+    group_granularity : int
+        Granularity of the group search
+    ignore_duplicate : bool
+        If True, ignore duplicate songs
+    authorized_types : list
+        List of authorized types
+
+    Returns
+    -------
+    list
+        List of songs
+    """
+
     start = timeit.default_timer()
 
     cursor = sql_calls.connect_to_database(sql_calls.database_path)
@@ -569,6 +791,25 @@ def get_composer_ids_song_list(
     ignore_duplicate,
     authorized_types,
 ):
+    """
+    Get the list of songs from a list of composer ids
+
+    Parameters
+    ----------
+    composer_ids : list
+        List of composer ids
+    arrangement : bool
+        If True, the arrangement is also taken into account
+    ignore_duplicate : bool
+        If True, the duplicate songs are ignored
+    authorized_types : list
+        List of authorized types
+
+    Returns
+    -------
+    list
+        List of songs
+    """
 
     start = timeit.default_timer()
 
@@ -617,6 +858,18 @@ def get_annId_song_list(
     ignore_duplicate,
     authorized_types,
 ):
+    """
+    Get the song list from an annId
+
+    Parameters
+    ----------
+    annId : int
+        The annId of the anime
+    ignore_duplicate : bool
+        If True, ignore duplicate songs
+    authorized_types : list
+        The authorized types of songs
+    """
 
     start = timeit.default_timer()
 

@@ -175,7 +175,7 @@ CREATE VIEW
     artistsMembers AS 
 SELECT 
     artists.id, 
-    link_artist_line_up.artist_line_up_type, 
+    link_artist_line_up.artist_line_up_type as member_line_up_type, 
     group_concat(link_artist_line_up.artist_id) AS members, 
     group_concat(link_artist_line_up.artist_line_up_id) as members_line_up 
 FROM 
@@ -191,8 +191,8 @@ CREATE VIEW
 SELECT 
     artists.id,
     link_artist_line_up.group_line_up_type,
-    group_concat(link_artist_line_up.group_id) AS groups,
-    group_concat(link_artist_line_up.group_line_up_id) as groups_line_up
+    group_concat(link_artist_line_up.group_id) AS groups_ids,
+    group_concat(link_artist_line_up.group_line_up_id) as groups_line_ups
 FROM 
     artists 
 LEFT JOIN 

@@ -1,5 +1,9 @@
 # Splitting Config
 
+"""
+A config file for the splitting
+"""
+
 splitters = " VS | vs | & | , |, | featuring\. | Featuring\. | featuring | Featuring | feat\. | feat\.|feat\. |feat\.| FEAT. | ft\. | ft\.|ft\. |ft\.| x | × | with |＆| / |/| meets | adding | and "
 secondary_splitters = "・|& | &|&| ,|,| ×|× |×| \+ |\+"
 

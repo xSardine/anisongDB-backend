@@ -10,6 +10,10 @@ import sys, os, getopt
 import splitting
 import utils
 
+"""
+A script to update the song database automatically from the AMQ expand database
+"""
+
 splitters = splitting.splitters
 secondary_splitters = splitting.secondary_splitters
 splitting_exception = splitting.splitting_exception
@@ -640,10 +644,6 @@ def process(update):
     now = datetime.now()
 
     add_log("Update Done - " + now.strftime("%d/%m/%Y %H:%M:%S"))
-    # os.system(
-    #    "scp ../app/data/Enhanced-AMQ-Database.db anthony@anisongdb.com:~/AMQ-Artists-DB/backEnd/app/data/Enhanced-AMQ-Database.db"
-    # )
-    print("Update sent")
 
 
 if __name__ == "__main__":

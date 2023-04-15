@@ -1,5 +1,9 @@
 import re
 
+"""
+A collection of useful functions
+"""
+
 ANIME_REGEX_REPLACE_RULES = [
     {"input": "ļ", "replace": "[ļĻ]"},
     {"input": "l", "replace": "[l˥ļĻ]"},
@@ -26,7 +30,7 @@ ANIME_REGEX_REPLACE_RULES = [
     {"input": "*", "replace": "[*✻＊✳︎]"},
     {
         "input": " ",
-        "replace": "( ?[²³⁵★☆♥♡\\/\\*✻✳︎＊'ˈ-∽~〜・·\\.,;:!?@_-⇔→≒=\\+†×±◎Ө♪♣␣∞] ?| )",
+        "replace": "( ?[²³⁵★☆♥♡\\/\\*✻✳︎＊'ˈ\-∽~〜・·\\.,;:!?@_-⇔→≒=\\+†×±◎Ө♪♣␣∞] ?| )",
     },
     {"input": "i", "replace": "([iíίɪ]|ii)"},
     {"input": "x", "replace": "[x×]"},
@@ -37,6 +41,21 @@ ANIME_REGEX_REPLACE_RULES = [
 
 
 def escapeRegExp(str):
+
+    """
+    Escape the string to be used in a regex
+
+    Parameters
+    ----------
+    str : str
+        The string to escape
+
+    Returns
+    -------
+    str
+        The escaped string
+    """
+
     str = re.escape(str)
     str = str.replace("\ ", " ")
     str = str.replace("\*", "*")
@@ -44,12 +63,43 @@ def escapeRegExp(str):
 
 
 def apply_regex_rules(search):
+    """
+    Apply the regex rules in ANIME_REGEX_REPLACE_RULES to the search string
+
+    Parameters
+    ----------
+    search : str
+        The string to apply the rules to
+
+    Returns
+    -------
+    str
+        The string with the rules applied
+    """
+
     for rule in ANIME_REGEX_REPLACE_RULES:
         search = search.replace(rule["input"], rule["replace"])
     return search
 
 
-def get_regex_search(og_search, partial_match=True, swap_words=False):
+def get_regex_search(og_search, partial_match=True, swap_words=True):
+    """
+    Get the regex search string from the search string
+
+    Parameters
+    ----------
+    og_search : str
+        The search string
+    partial_match : bool, optional
+        Whether to allow partial matches, by default True
+    swap_words : bool, optional
+        Whether to allow swapping the words, by default True
+
+    Returns
+    -------
+    str
+        The regex search string
+    """
 
     og_search = escapeRegExp(og_search.lower())
     search = apply_regex_rules(og_search)
@@ -79,8 +129,9 @@ def format_song(artist_database, song):
         type = "Insert Song"
 
     artists = []
-    if song[13]:
-        for artist_id, line_up in zip(song[13].split(","), song[14].split(",")):
+
+    if song[15]:
+        for artist_id, line_up in zip(song[15].split(","), song[16].split(",")):
 
             line_up = int(line_up)
 
@@ -91,15 +142,17 @@ def format_song(artist_database, song):
             }
 
             if (
-                artist_database[str(artist_id)]["members"]
-                and len(artist_database[str(artist_id)]["members"]) >= line_up
+                artist_database[str(artist_id)]["line_ups"]
+                and len(artist_database[str(artist_id)]["line_ups"]) >= line_up
             ):
-                current_artist["members"] = []
-                for member in artist_database[str(artist_id)]["members"][line_up]:
-                    current_artist["members"].append(
+                current_artist["line_ups"] = []
+                for member in artist_database[str(artist_id)]["line_ups"][line_up][
+                    "members"
+                ]:
+                    current_artist["line_ups"].append(
                         {
-                            "id": member[0],
-                            "names": artist_database[str(member[0])]["names"],
+                            "id": member["id"],
+                            "names": artist_database[str(member["id"])]["names"],
                         }
                     )
 
@@ -107,28 +160,38 @@ def format_song(artist_database, song):
                 current_artist["groups"] = []
                 added_group = set()
                 for group in artist_database[str(artist_id)]["groups"]:
-                    if group[0] in added_group:
+                    if group["id"] in added_group:
                         continue
-                    added_group.add(group[0])
+                    added_group.add(group["id"])
                     current_artist["groups"].append(
                         {
-                            "id": group[0],
-                            "names": artist_database[str(group[0])]["names"],
+                            "id": group["id"],
+                            "names": artist_database[str(group["id"])]["names"],
                         }
                     )
 
             artists.append(current_artist)
 
+    performers = []
+    if song[17]:
+        for performer_id in song[17].split(","):
+            performers.append(
+                {
+                    "id": performer_id,
+                    "names": artist_database[str(performer_id)]["names"],
+                }
+            )
+
     composers = []
-    if song[15]:
-        for composer_id in song[15].split(","):
+    if song[19]:
+        for composer_id in song[19].split(","):
             composers.append(
                 {"id": composer_id, "names": artist_database[str(composer_id)]["names"]}
             )
 
     arrangers = []
-    if song[16]:
-        for arranger_id in song[16].split(","):
+    if song[21]:
+        for arranger_id in song[21].split(","):
             arrangers.append(
                 {"id": arranger_id, "names": artist_database[str(arranger_id)]["names"]}
             )
@@ -146,10 +209,11 @@ def format_song(artist_database, song):
         "songArtist": song[12],
         "songDifficulty": song[17],
         "songCategory": song[18],
-        "HQ": song[19],
-        "MQ": song[20],
-        "audio": song[21],
+        "HQ": song[22],
+        "MQ": song[23],
+        "audio": song[24],
         "artists": artists,
+        "performers": performers,
         "composers": composers,
         "arrangers": arrangers,
     }

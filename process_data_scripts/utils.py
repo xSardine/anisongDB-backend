@@ -1,5 +1,9 @@
 import re
 
+"""
+A collection of useful functions
+"""
+
 ANIME_REGEX_REPLACE_RULES = [
     {"input": "ļ", "replace": "[ļĻ]"},
     {"input": "l", "replace": "[l˥ļĻ]"},
@@ -26,7 +30,7 @@ ANIME_REGEX_REPLACE_RULES = [
     {"input": "*", "replace": "[*✻＊✳︎]"},
     {
         "input": " ",
-        "replace": "( ?[²³⁵★☆♥♡\\/\\*✻✳︎＊'ˈ-∽~〜・·\\.,;:!?@_-⇔→≒=\\+†×±◎Ө♪♣␣∞] ?| )",
+        "replace": "( ?[²³⁵★☆♥♡\\/\\*✻✳︎＊'ˈ\-∽~〜・·\\.,;:!?@_-⇔→≒=\\+†×±◎Ө♪♣␣∞] ?| )",
     },
     {"input": "i", "replace": "([iíίɪ]|ii)"},
     {"input": "x", "replace": "[x×]"},
@@ -603,6 +607,22 @@ def get_artist_id(
 
 
 def check_same_song(source_song, song):
+    """
+    Check if the song is the same as the source song
+
+    Parameters
+    ----------
+    source_song : dict
+        The source song
+    song : str or list
+        The song to check
+
+    Returns
+    -------
+    bool
+        Whether the song is the same as the source song
+    """
+
     if song == source_song["annSongId"] or (
         type(song) == list
         and song[0] == source_song["songName"]

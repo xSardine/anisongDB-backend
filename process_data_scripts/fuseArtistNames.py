@@ -1,6 +1,10 @@
 import json
 import utils
 
+"""
+A script to fuse artists together
+"""
+
 song_database_path = "../app/data/song_database.json"
 artist_database_path = "../app/data/artist_database.json"
 

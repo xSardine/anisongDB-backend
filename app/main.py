@@ -8,6 +8,10 @@ import get_search_result
 import sql_calls, utils
 from random import randrange
 
+"""
+    This file contains the main FastAPI app
+"""
+
 
 class Search_Filter(BaseModel):
 
@@ -75,14 +79,17 @@ class annId_Search_Request(SearchBase):
 class Artist(BaseModel):
     id: int
     names: List[str]
-    groups: List["Group"]
+    groups: Optional[List["Group"]]
 
 
 class Group(BaseModel):
     id: int
     names: List[str]
-    groups: List["Group"]
-    members: List[Union[Artist, "Group"]]
+    groups: Optional[List["Group"]]
+    members: Optional[List[Union[Artist, "Group"]]]
+
+
+Artist.update_forward_refs()
 
 
 class Song_Entry(BaseModel):
@@ -90,21 +97,22 @@ class Song_Entry(BaseModel):
     annSongId: int
     animeENName: str
     animeJPName: str
-    animeAltName: List[str]
-    animeVintage: str
-    animeType: str
+    animeAltName: Optional[List[str]]
+    animeVintage: Optional[str]
+    animeType: Optional[str]
     songType: str
     songName: str
     songArtist: str
-    songDifficulty: float
-    songCategory: str
-    HQ: str
-    MQ: str
-    audio: str
-    vocals: List[Union[Artist, Group]]
-    performers: List[Union[Artist, Group]]
-    composers: List[Union[Artist, Group]]
-    arrangers: List[Union[Artist, Group]]
+    songDifficulty: Optional[float]
+    songCategory: Optional[str]
+    HQ: Optional[str]
+    MQ: Optional[str]
+    audio: Optional[str]
+    artists: Optional[List[Union[Artist, Group]]]
+    vocalists: Optional[List[Union[Artist, Group]]]
+    performers: Optional[List[Union[Artist, Group]]]
+    composers: Optional[List[Union[Artist, Group]]]
+    arrangers: Optional[List[Union[Artist, Group]]]
 
 
 # Launch API
