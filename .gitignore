@@ -2,9 +2,10 @@
 commands.txt
 randomScripts/
 *.json
-app/data/Enhanced-AMQ-Database.sqlite
+app/data/enhanced_amq_database.sqlite
 app/data/back-up/
 app/data/old/
+misc_scripts/updateLogs.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -121,7 +122,8 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+# .env
+# .docker.env
 .venv
 env/
 venv/

@@ -12,9 +12,9 @@ Reminder that I am merely building upon an existing work, and I won't fix any as
 What `I will` fix :
 
 > - Missing `group members`
-> - Missing `performers`, aka people who plays the instruments and are famous for it (which are a WIP, so there are a lot of missing ones)
+> - Missing `performers`, aka people who plays the instruments and are famous for it (which are a WIP, so there are a lot of missing ones) (e.g. Lupintic Six, Yoshida Brothers, etc...)
 > - Missing `composers, arrangers` (which are a WIP, so there are a lot of missing ones)
-> - Two `people with the exact same` name and are considered the same person in the database (e.g. Minami from DomexKano and Minami [Kuribayashi])
+> - Two `people with the exact same name` and are considered the same person in the database (e.g. Minami from DomexKano and Minami [Kuribayashi])
 > - The `same person with two different names` and is not yet considered the same person in the database (e.g Shiena Nishizawa / EXiNA)
 
 If you have found one of these that needs to be fixed, you can contact me on Discord (`xSardine#8168`), help is very appreciated.  

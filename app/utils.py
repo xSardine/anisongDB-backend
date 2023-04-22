@@ -1,4 +1,5 @@
 import re
+from typing import Any, List, Dict
 
 """
 A collection of useful functions
@@ -41,7 +42,6 @@ ANIME_REGEX_REPLACE_RULES = [
 
 
 def escapeRegExp(str):
-
     """
     Escape the string to be used in a regex
 
@@ -119,103 +119,230 @@ def get_regex_search(og_search, partial_match=True, swap_words=True):
     return search
 
 
-def format_song(artist_database, song):
+def is_ranked_time() -> bool:
+    """
+    Returns true if it is ranked time
 
-    if song[9] == 1:
-        type = "Opening " + str(song[10])
-    elif song[9] == 2:
-        type = "Ending " + str(song[10])
-    else:
-        type = "Insert Song"
+    Returns
+    -------
+    bool
+        If it is ranked time
+    """
 
-    artists = []
+    return False
 
-    if song[15]:
-        for artist_id, line_up in zip(song[15].split(","), song[16].split(",")):
+    date = datetime.utcnow()
+    # If ranked time UTC
+    if (
+        # CST
+        (
+            (date.hour == 1 and date.minute >= 30)
+            or (date.hour == 2 and date.minute < 28)
+        )
+        # JST
+        or (
+            (date.hour == 11 and date.minute >= 30)
+            or (date.hour == 12 and date.minute < 28)
+        )
+        # CET
+        or (
+            (date.hour == 18 and date.minute >= 30)
+            or (date.hour == 19 and date.minute < 28)
+        )
+    ):
+        return True
+    return False
 
-            line_up = int(line_up)
 
-            current_artist = {
-                "id": artist_id,
-                "names": artist_database[str(artist_id)]["names"],
-                "line_up_id": line_up,
-            }
+def format_song_types_to_integer(song_types):
+    """
+    Format the song_types from the query to their integer mapping
 
-            if (
-                artist_database[str(artist_id)]["line_ups"]
-                and len(artist_database[str(artist_id)]["line_ups"]) >= line_up
-            ):
-                current_artist["line_ups"] = []
-                for member in artist_database[str(artist_id)]["line_ups"][line_up][
-                    "members"
-                ]:
-                    current_artist["line_ups"].append(
-                        {
-                            "id": member["id"],
-                            "names": artist_database[str(member["id"])]["names"],
-                        }
-                    )
+    Parameters
+    ----------
+    song_types : List[SongType] : [opening, ending, insert]}
+        The list of song types to format
 
-            if artist_database[str(artist_id)]["groups"]:
-                current_artist["groups"] = []
-                added_group = set()
-                for group in artist_database[str(artist_id)]["groups"]:
-                    if group["id"] in added_group:
-                        continue
-                    added_group.add(group["id"])
-                    current_artist["groups"].append(
-                        {
-                            "id": group["id"],
-                            "names": artist_database[str(group["id"])]["names"],
-                        }
-                    )
+    Returns
+    -------
+    list
+        The list of formatted song types
+    """
 
-            artists.append(current_artist)
-
-    performers = []
-    if song[17]:
-        for performer_id in song[17].split(","):
-            performers.append(
-                {
-                    "id": performer_id,
-                    "names": artist_database[str(performer_id)]["names"],
-                }
-            )
-
-    composers = []
-    if song[19]:
-        for composer_id in song[19].split(","):
-            composers.append(
-                {"id": composer_id, "names": artist_database[str(composer_id)]["names"]}
-            )
-
-    arrangers = []
-    if song[21]:
-        for arranger_id in song[21].split(","):
-            arrangers.append(
-                {"id": arranger_id, "names": artist_database[str(arranger_id)]["names"]}
-            )
-
-    songinfo = {
-        "annId": song[0],
-        "annSongId": song[8],
-        "animeJPName": song[2] if song[2] else song[1],
-        "animeENName": song[3] if song[3] else song[1],
-        "animeAltName": song[4].split("\$") if song[4] else song[4],
-        "animeVintage": song[5],
-        "animeType": song[6],
-        "songType": type,
-        "songName": song[11],
-        "songArtist": song[12],
-        "songDifficulty": song[17],
-        "songCategory": song[18],
-        "HQ": song[22],
-        "MQ": song[23],
-        "audio": song[24],
-        "artists": artists,
-        "performers": performers,
-        "composers": composers,
-        "arrangers": arrangers,
+    song_type_mapping = {
+        "opening": 1,
+        "ending": 2,
+        "insert": 3,
     }
 
-    return songinfo
+    return [song_type_mapping[type] for type in song_types]
+
+
+def format_song_types_to_string(song_type: int, song_number: int) -> str:
+    """
+    Format the song_types from the query to their string mapping
+
+    Parameters
+    ----------
+    song_type : int
+        The song type to format
+    song_number : int
+        The song number
+
+    Returns
+    -------
+    str
+        The formatted song type (Examples: Opening 1, Ending 3, Insert Song)
+    """
+
+    if song_type == 1:
+        song_type = f"Opening {song_number}"
+    elif song_type == 2:
+        song_type = f"Ending {song_number}"
+    elif song_type == 3:
+        song_type = f"Insert Song"
+
+    return song_type
+
+
+def format_artist_id(artist_database: Dict, artist_id: int) -> Dict:
+    """
+    Format the artist to the output format
+
+    Parameters
+    ----------
+    artist_database : Dict
+        The artist database
+    artist_id : int
+        The artist id
+
+    Returns
+    -------
+    Dict
+        The formatted artist
+    """
+
+    artist = artist_database.get(str(artist_id))
+
+    if artist is None:
+        return {}
+
+    formatted_groups = []
+    for group in artist.get("groups", []):
+        group_names = artist_database.get(group["id"], {}).get("names", [])
+        formatted_groups.append({"artist_id": int(group["id"]), "names": group_names})
+
+    formatted_members = []
+    line_ups = []
+    for i, line_up in enumerate(artist["line_ups"]):
+        for member in line_up.get("members", []):
+            member_names = artist_database.get(member["id"], {}).get("names", [])
+            formatted_members.append(
+                {
+                    "artist_id": int(member["id"]),
+                    "names": member_names,
+                    "line_up_id": int(member["line_up_id"]),
+                }
+            )
+        line_ups.append({"line_up_id": i, "members": formatted_members})
+
+    return {
+        "artist_id": int(artist_id),
+        "names": artist.get("names", []),
+        "line_ups": line_ups if line_ups else None,
+        "groups": formatted_groups if formatted_groups else None,
+    }
+
+
+def format_results(artist_database: Dict, songs: List[List[Any]]) -> Dict:
+    """
+    Format the song to the output format
+
+    Parameters
+    ----------
+    artist_database : Dict
+        The artist database
+    song : List[Any]
+        The song to format
+
+    Returns
+    -------
+    Dict
+        The formatted results
+    """
+
+    output_anime = []
+    output_songs = []
+    output_artists = []
+
+    artist_ids = set()
+    ann_ids = set()
+
+    for song in songs:
+        song_type = format_song_types_to_string(song[9], song[10])
+
+        role_type_columns = {
+            "vocalists": 15,
+            "backing_vocalists": 17,
+            "performers": 19,
+            "composers": 21,
+            "arrangers": 23,
+        }
+
+        role_type_artists = {}
+        for role_type in role_type_columns:
+            column = role_type_columns[role_type]
+            role_type_artists[role_type] = []
+            if not song[column]:
+                continue
+
+            for artist_id, artist_line_up_id in zip(
+                song[column].split(","), song[column + 1].split(",")
+            ):
+                if artist_id not in artist_ids:
+                    output_artists.append(format_artist_id(artist_database, artist_id))
+                    artist_ids.add(artist_id)
+                role_type_artists[role_type].append(
+                    {"artist_id": int(artist_id), "line_up_id": int(artist_line_up_id)}
+                )
+
+        if song[0] not in ann_ids:
+            output_anime.append(
+                {
+                    "ann_id": song[0],
+                    "anime_jp_name": song[2] or song[1],
+                    "anime_en_name": song[3] or song[1],
+                    "anime_alt_names": song[4].split("\$") if song[4] else song[4],
+                    "anime_season": song[5],
+                    "anime_type": song[6],
+                    "anime_genres": [],
+                    "anime_tags": [],
+                }
+            )
+            ann_ids.add(song[0])
+
+        output_songs.append(
+            {
+                "ann_id": song[0],
+                "ann_song_id": song[8],
+                "song_type": song_type,
+                "song_name": song[11],
+                "song_artist": song[12],
+                "song_difficulty": song[13],
+                "song_category": song[14],
+                "HQ": song[25],
+                "MQ": song[26],
+                "audio": song[27],
+                "vocalists": role_type_artists["vocalists"],
+                "backing_vocalists": role_type_artists["backing_vocalists"],
+                "performers": role_type_artists["performers"],
+                "composers": role_type_artists["composers"],
+                "arrangers": role_type_artists["arrangers"],
+            }
+        )
+
+    return {
+        "anime": output_anime,
+        "songs": output_songs,
+        "artists": output_artists,
+    }

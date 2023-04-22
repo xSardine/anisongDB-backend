@@ -1,6 +1,23 @@
 # AnisongDB - Back-End
 
-This repository contains the back-end of [Anisongdb](https://anisongdb.com/).  
+TODO list before using this in production
+
+> - Implement support for Back-ups
+> - Artist with multiple role in same line_up
+> - sort results
+> - reverse line ups order so that it goes 0 = oldest, 1 = second oldest, etc... & automatically assign newest to new songs
+> - Document Regex better
+> - Document the fact that db is not being updated on this git regularly
+> - Document the consequences of attributes not updated regularly better
+> - Mentions front-end in the readme
+> - Search artist name directly if no ID found
+> - Finish implementing current search parameters for each end points
+> - Add case sensitive & exact match search possibilities
+> - Use max number of songs earlier in the search to optimize edge cases
+> - Rework the front-end with the new API
+> - Implement the new front-end and back-end in a development server, and let people who have been using the old version test it and adapt their code to the new API
+
+This repository contains the future back-end of [AnisongDB](https://anisongdb.com/).  
 Built with [FastAPI](https://fastapi.tiangolo.com/)
 
 ## Features
@@ -24,7 +41,7 @@ This also means that any info that is not available in Expand Database will not 
 
 This includes :
 
-- Anime type, vintage, alternative names, genres, tags and animelist website IDs (MAL, AniList, etc...)
+- Anime type, season, alternative names, genres, tags and animelist website IDs (MAL, AniList, etc...)
 - Song difficulty and category
 
 Last update for these was on 2023-04-13.
@@ -38,7 +55,7 @@ If you wish to contribute, please read the following [recommendations](/CONTRIBU
 The FastAPI application is in the directory `app`.  
 The directory `app/data` contains the database. It is not the one being used in production, as I don't want to expose it publicly. Instead it is a copy of the database, with some data removed, such as catbox links to the song's video.
 
-The directory `process_data_scripts` contains a collection of scripts that I used to process the data, and maintain the database. There are some more scripts that I use but have yet to publish as they are too ugly to be seen by the public. Locally, I maintain the database using `.json` files, as I can easily access them and modify them when I encounter exceptions that I have yet to automate. I then use the scripts in `process_data_scripts/convert_to_SQL.py` to convert the `.json` files to the sqlite format for productions use.
+The directory `misc_scripts` contains a collection of scripts that I used to process the data, and maintain the database. There are some more scripts that I use but have yet to publish as they are too ugly to be seen by the public. Locally, I maintain the database using `.json` files, as I can easily access them and modify them when I encounter exceptions that I have not automated yet. I then use the scripts in `process_data_scripts/convert_to_SQL.py` to convert the `.json` files to the sqlite format for productions use. No continuous deployment yet, I send the database to my server and then restart the server manually.
 
 ## Installation
 

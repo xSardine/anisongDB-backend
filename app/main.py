@@ -1,275 +1,107 @@
-from __future__ import annotations
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field, validator
-from typing import List, Optional, Union
-import get_search_result
-import sql_calls, utils
+import search_database
+import sql_calls
+import utils
+from io_classes import *
+
 from random import randrange
+from typing import List
+
+import uvicorn
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
+import redis.asyncio as redis
+from decouple import config
 
 """
     This file contains the main FastAPI app
 """
 
+description = """
+## AnisongDB API
 
-class Search_Filter(BaseModel):
+This is the documentation for AnisongDB's API.
 
-    search: str
-    partial_match: Optional[bool] = True
+## Contact
 
-    # How much I decompose the group to search for other songs
-    # ie. 1: Artists one by one 2: At least two member from the group, etc...
-    group_granularity: Optional[int] = Field(2, ge=0)
-    # Once I've confirmed group_granularity requirement is met
-    # How much other artists that are not from the og group do I accept
-    max_other_artist: Optional[int] = Field(2, ge=0)
+For any questions regarding this API, please contact xSardine#8168 on Discord.  
+For any technical questions, please create an issue on the corresponding repositories following <a href="https://github.com/xSardine/anisongDB-backend/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">guidelines</a>.
 
-    # for composer search
-    arrangement: Optional[bool] = True
+## Disclaimer
 
+This API is still in development and is a work in progress.  
+Be aware that even though I will try to keep incompatibilies between versions at a minimum, the API is subject to change.  
+For performance reasons, the API is currently **limited to 350 results** per requests.
 
-class SearchBase(BaseModel):
-    ignore_duplicate: Optional[bool] = False
-    opening_filter: Optional[bool] = True
-    ending_filter: Optional[bool] = True
-    insert_filter: Optional[bool] = True
+## Endpoints
 
+You will be able to:
 
-class Search_Request(SearchBase):
-    anime_search_filter: Optional[Search_Filter] = []
-    song_name_search_filter: Optional[Search_Filter] = []
-    artist_search_filter: Optional[Search_Filter] = []
-    composer_search_filter: Optional[Search_Filter] = []
-    and_logic: Optional[bool] = True
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "artist_search_filter": {
-                    "search": "Aimer",
-                    "partial_match": False,
-                    "max_other_artist": 0,
-                },
-                "composer_search_filter": {
-                    "search": "hiroyuki sawano",
-                    "partial_match": True,
-                    "arrangement": True,
-                },
-                "and_logic": True,
-                "ignore_duplicate": True,
-                "opening_filter": True,
-                "ending_filter": True,
-                "insert_filter": True,
-            }
-        }
-
-    @validator("anime_search_filter", "song_name_search_filter", "artist_search_filter")
-    def at_least_one_filter_defined(cls, v, values):
-        if v:
-            return v
-        if not any(
-            values.get(other_field)
-            for other_field in (
-                "anime_search_filter",
-                "song_name_search_filter",
-                "artist_search_filter",
-            )
-        ):
-            raise ValueError(
-                f"At least one of 'anime_search_filter', 'song_name_search_filter', or 'artist_search_filter' must be defined"
-            )
-        return v
-
-
-class Artist_ID_Search_Request(SearchBase):
-    artist_ids: List[int] = []
-    group_granularity: Optional[int] = Field(2, ge=0)
-    max_other_artist: Optional[int] = Field(2, ge=0)
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "artist_ids": [6343],
-                "group_granularity": 2,
-                "max_other_artist": 0,
-                "arrangement": True,
-                "ignore_duplicate": True,
-                "opening_filter": True,
-                "ending_filter": True,
-                "insert_filter": False,
-            }
-        }
-
-
-class Composer_ID_Search_Request(SearchBase):
-    composer_ids: List[int] = []
-    arrangement: Optional[bool] = True
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "composer_ids": [4469, 4900],
-                "arrangement": True,
-                "ignore_duplicate": True,
-                "opening_filter": True,
-                "ending_filter": True,
-                "insert_filter": False,
-            }
-        }
-
-
-class annId_Search_Request(SearchBase):
-    annId: int
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "annId": 14089,
-                "ignore_duplicate": True,
-                "opening_filter": True,
-                "ending_filter": True,
-                "insert_filter": False,
-            }
-        }
-
-
-class Artist(BaseModel):
-    id: int
-    names: List[str]
-    groups: Optional[List["Group"]]
-
-
-class Group(BaseModel):
-    id: int
-    names: List[str]
-    groups: Optional[List["Group"]]
-    members: Optional[List[Union[Artist, "Group"]]]
-
-
-Artist.update_forward_refs()
-
-
-class Song_Entry(BaseModel):
-    annId: int
-    annSongId: int
-    animeENName: str
-    animeJPName: str
-    animeAltName: Optional[List[str]]
-    animeVintage: Optional[str]
-    animeType: Optional[str]
-    songType: str
-    songName: str
-    songArtist: str
-    songDifficulty: Optional[float]
-    songCategory: Optional[str]
-    HQ: Optional[str]
-    MQ: Optional[str]
-    audio: Optional[str]
-    artists: Optional[List[Union[Artist, Group]]]
-    vocalists: Optional[List[Union[Artist, Group]]]
-    performers: Optional[List[Union[Artist, Group]]]
-    composers: Optional[List[Union[Artist, Group]]]
-    arrangers: Optional[List[Union[Artist, Group]]]
-
-
-def format_artist_ids(artist_database, artist_id, artist_line_up=-1):
-
-    artist = artist_database[str(artist_id)]
-
-    formatted_artist = {
-        "id": artist_id,
-        "names": artist["names"],
-    }
-
-    if artist_line_up != -1:
-        formatted_artist["line_up_id"] = artist_line_up
-
-    if artist["groups"]:
-        formatted_group_list = []
-        for group_id, group_line_up_id in artist["groups"]:
-            current_group = {
-                "id": group_id,
-                "names": artist_database[str(group_id)]["names"],
-            }
-            if group_line_up_id != -1:
-                current_group["line_up_id"] = group_line_up_id
-            formatted_group_list.append(current_group)
-        formatted_artist["groups"] = formatted_group_list
-
-    if artist_line_up != -1 and artist["members"]:
-        formatted_member_list = []
-        for member_id, member_line_up_id in artist["members"][artist_line_up]:
-            current_member = {
-                "id": member_id,
-                "names": artist_database[str(member_id)]["names"],
-            }
-            if member_line_up_id:
-                current_member["line_up_id"] = member_line_up_id
-            formatted_member_list.append(current_member)
-        formatted_artist["members"] = formatted_member_list
-
-    return formatted_artist
-
-
-def format_composer_ids(artist_database, composer_id):
-    composer = {"id": composer_id}
-
-    composer["names"] = artist_database[str(composer_id)]["names"]
-
-    return composer
-
-
-def format_arranger_ids(artist_database, arranger_id):
-    arranger = {"id": arranger_id}
-    arranger["names"] = artist_database[str(arranger_id)]["names"]
-
-    return arranger
-
+* **Search songs by anime's ANN ID**.
+* **Search songs by anime name**.
+* **Search songs by song name**.
+* **Search songs by artist name**.
+* **Search songs by artist ID**.
+* **Combine all the previous endpoints with different combinations using a global endpoint**.
+"""
 
 # Launch API
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+app = FastAPI(
+    title="AnisongDB API",
+    description=description,
+    version="0.1.0",
+    contact={"name": "xSardine#8168"},
 )
 
 
-@app.post("/api/search_request", response_model=List[Song_Entry])
-async def search_request(query: Search_Request):
+# Get .env variables
+# FastAPI
+ANISONGDB_API_HOST = config("ANISONGDB_API_HOST")
+ANISONGDB_API_PORT = config("ANISONGDB_API_PORT", cast=int)
 
-    authorized_type = []
-    if query.opening_filter:
-        authorized_type.append(1)
-    if query.ending_filter:
-        authorized_type.append(2)
-    if query.insert_filter:
-        authorized_type.append(3)
+# App
+MAX_RESULTS_PER_SEARCH = config("MAX_RESULTS_PER_SEARCH", cast=int)
 
-    if not authorized_type:
-        return []
+# Redis
+REDIS_HOST = config("REDIS_HOST")
+REDIS_PORT = config("REDIS_PORT", cast=int)
 
-    song_list = get_search_result.get_search_results(
-        query.anime_search_filter,
-        query.song_name_search_filter,
-        query.artist_search_filter,
-        query.composer_search_filter,
-        query.and_logic,
-        query.ignore_duplicate,
-        300,
-        authorized_type,
+# Local mode only
+UVICORN_RELOAD_FLAG = config("UVICORN_RELOAD_FLAG", default=False, cast=bool)
+
+print(
+    f"""
+    Config:
+    - ANISONGDB_API_HOST = {ANISONGDB_API_HOST}
+    - ANISONGDB_API_PORT = {ANISONGDB_API_PORT}
+    - MAX_RESULTS_PER_SEARCH = {MAX_RESULTS_PER_SEARCH}
+    - REDIS_HOST = {REDIS_HOST}
+    - REDIS_PORT = {REDIS_PORT}
+    - UVICORN_RELOAD_FLAG = {UVICORN_RELOAD_FLAG} # Not used when deployed with Docker
+"""
+)
+
+# on app start_up, connect to redis for rate limiting
+
+
+@app.on_event("startup")
+async def startup():
+    redis_db = redis.from_url(
+        f"redis://{REDIS_HOST}:{REDIS_PORT}/0", encoding="utf-8", decode_responses=True
     )
+    await FastAPILimiter.init(redis_db)
 
-    return song_list
 
-
-@app.post("/api/get_50_random_songs", response_model=List[Song_Entry])
+@app.post(
+    "/api/get_50_random_songs",
+    response_model=Results,
+    dependencies=[
+        Depends(RateLimiter(times=5, seconds=15)),
+        Depends(RateLimiter(times=20, seconds=90)),
+    ],
+)
 async def get_50_random_songs():
-
-    cursor = sql_calls.connect_to_database(sql_calls.database_path)
+    cursor = sql_calls.connect_to_database()
 
     songIds = [randrange(39000) for _ in range(50)]
 
@@ -281,78 +113,238 @@ async def get_50_random_songs():
     )
     songs = sql_calls.run_sql_command(cursor, get_songs_from_songs_ids, songIds)
 
-    song_list = [utils.format_song(artist_database, song) for song in songs]
-
-    return song_list
+    return utils.format_results(artist_database, songs)
 
 
-@app.post("/api/artist_ids_request", response_model=List[Song_Entry])
-async def search_request(query: Artist_ID_Search_Request):
+@app.post(
+    "/api/anime_search",
+    response_model=Results,
+    description="""Search for songs by anime name<br>
+    Anime name can be in English, Romaji, or some alternative name<br>
+    <b>*However, only one of these names is updated regularly : the one available in Expand Library on AMQ</b><br>
+    Not case sensitive, special characters are ignored.<br>
+    To check the regex rules used, see https://github.com/xSardine/anisongDB-backend/blob/main/app/utils.py""",
+    dependencies=[
+        Depends(RateLimiter(times=5, seconds=15)),
+        Depends(RateLimiter(times=20, seconds=90)),
+    ],
+)
+async def anime_search(body: AnimeSearchParams):
+    if body.partial_match and len(body.anime_name) <= 3:
+        raise HTTPException(
+            status_code=400,
+            detail="anime_name must be at least 4 characters long if partial_match is True",
+        )
 
-    authorized_type = []
-    if query.opening_filter:
-        authorized_type.append(1)
-    if query.ending_filter:
-        authorized_type.append(2)
-    if query.insert_filter:
-        authorized_type.append(3)
-
-    if not authorized_type:
-        return []
-
-    song_list = get_search_result.get_artists_ids_song_list(
-        query.artist_ids,
-        query.max_other_artist,
-        query.group_granularity,
-        query.ignore_duplicate,
-        authorized_type,
+    song_types = utils.format_song_types_to_integer(body.song_types)
+    songs_list = search_database.get_anime_search_songs_list(
+        body.anime_name,
+        body.partial_match,
+        body.ignore_duplicates,
+        song_types,
+        body.song_categories,
+        body.song_difficulty_range,
+        body.anime_types,
+        body.anime_seasons,
+        body.anime_genres,
+        body.anime_tags,
+        MAX_RESULTS_PER_SEARCH,
     )
 
-    return song_list
+    return songs_list
 
 
-@app.post("/api/composer_ids_request", response_model=List[Song_Entry])
-async def search_request(query: Composer_ID_Search_Request):
-
-    authorized_type = []
-    if query.opening_filter:
-        authorized_type.append(1)
-    if query.ending_filter:
-        authorized_type.append(2)
-    if query.insert_filter:
-        authorized_type.append(3)
-
-    if not authorized_type:
-        return []
-
-    song_list = get_search_result.get_composer_ids_song_list(
-        query.composer_ids,
-        query.arrangement,
-        query.ignore_duplicate,
-        authorized_type,
+@app.post(
+    "/api/anime_annid_search",
+    response_model=Results,
+    description="Search for songs by ANN ID : ID of the anime in [Anime News Network](https://animenewsnetwork.com)",
+    dependencies=[
+        Depends(RateLimiter(times=5, seconds=15)),
+        Depends(RateLimiter(times=20, seconds=90)),
+    ],
+)
+async def anime_ann_id_search(body: AnimeAnnIdSearchParams):
+    song_types = utils.format_song_types_to_integer(body.song_types)
+    songs_list = search_database.get_ann_ids_songs_list(
+        [body.ann_id],
+        body.ignore_duplicates,
+        song_types,
+        body.song_categories,
+        body.song_difficulty_range,
+        MAX_RESULTS_PER_SEARCH,
     )
 
-    return song_list
+    return songs_list
 
 
-@app.post("/api/annId_request", response_model=List[Song_Entry])
-async def search_request(query: annId_Search_Request):
+@app.post(
+    "/api/song_name_search",
+    response_model=Results,
+    description="""Search for songs by song name<br>
+    Not case sensitive, special characters are ignored.<br>
+    To check the regex rules used, see https://github.com/xSardine/anisongDB-backend/blob/main/app/utils.py""",
+    dependencies=[
+        Depends(RateLimiter(times=5, seconds=15)),
+        Depends(RateLimiter(times=20, seconds=90)),
+    ],
+)
+async def song_name_search(body: SongSearchParams):
+    if body.partial_match and len(body.song_name) <= 3:
+        raise HTTPException(
+            status_code=400,
+            detail="song_name must be at least 4 characters long if partial_match is True",
+        )
 
-    authorized_type = []
-    if query.opening_filter:
-        authorized_type.append(1)
-    if query.ending_filter:
-        authorized_type.append(2)
-    if query.insert_filter:
-        authorized_type.append(3)
-
-    if not authorized_type:
-        return []
-
-    song_list = get_search_result.get_annId_song_list(
-        query.annId,
-        query.ignore_duplicate,
-        authorized_type,
+    song_types = utils.format_song_types_to_integer(body.song_types)
+    songs_list = search_database.get_song_name_search_songs_list(
+        body.song_name,
+        body.partial_match,
+        body.ignore_duplicates,
+        song_types,
+        body.song_categories,
+        body.song_difficulty_range,
+        body.anime_types,
+        body.anime_seasons,
+        body.anime_genres,
+        body.anime_tags,
+        MAX_RESULTS_PER_SEARCH,
     )
 
-    return song_list
+    return songs_list
+
+
+@app.post(
+    "/api/artist_id_search",
+    response_model=Results,
+    description="Search for songs by artist ID",
+    dependencies=[
+        Depends(RateLimiter(times=5, seconds=15)),
+        Depends(RateLimiter(times=20, seconds=90)),
+    ],
+)
+async def artist_Id_search(body: ArtistIdSearchParams):
+    song_types = utils.format_song_types_to_integer(body.song_types)
+    songs_list = search_database.get_artists_ids_songs_list(
+        [body.artist_id],
+        body.max_other_artists,
+        body.group_granularity,
+        body.credit_types,
+        body.ignore_duplicates,
+        song_types,
+        body.song_categories,
+        body.song_difficulty_range,
+        body.anime_types,
+        body.anime_seasons,
+        body.anime_genres,
+        body.anime_tags,
+    )
+
+    return songs_list
+
+
+@app.post(
+    "/api/artist_search",
+    response_model=Results,
+    description="""Search for songs by artist name<br>
+    Not case sensitive, special characters are ignored.<br>
+    To check the regex rules used, see https://github.com/xSardine/anisongDB-backend/blob/main/app/utils.py""",
+    dependencies=[
+        Depends(RateLimiter(times=5, seconds=15)),
+        Depends(RateLimiter(times=20, seconds=90)),
+    ],
+)
+async def artist_search(body: ArtistSearchParams):
+    if body.partial_match and len(body.artist_name) <= 3:
+        raise HTTPException(
+            status_code=400,
+            detail="artist_name must be at least 4 characters long if partial_match is True",
+        )
+
+    song_types = utils.format_song_types_to_integer(body.song_types)
+    songs_list = search_database.get_artists_search_songs_list(
+        body.artist_name,
+        body.partial_match,
+        body.max_other_artists,
+        body.group_granularity,
+        body.credit_types,
+        body.ignore_duplicates,
+        song_types,
+        body.song_categories,
+        body.song_difficulty_range,
+        body.anime_types,
+        body.anime_seasons,
+        body.anime_genres,
+        body.anime_tags,
+    )
+
+    return songs_list
+
+
+@app.post(
+    "/api/global_search",
+    response_model=Results,
+    description="""Search for songs with a global search filter<br>
+    Let you search with a combination of all other entry points. (Maximum 5)<br>
+    The question is why would I do that ? Why don't I just get people to make multiple requests and do the combination of those themselves ?<br>
+    The answer : I don't want to make multiple requests from the frontend of my website, which would means combining them with Javascript. And I'm bad at Javascript<br>
+    This endpoint is basically here just so that I can do it in Python instead.<br>""",
+    dependencies=[
+        Depends(RateLimiter(times=5, seconds=15)),
+        Depends(RateLimiter(times=20, seconds=90)),
+    ],
+)
+async def global_search(body: GlobalSearch):
+    if (
+        not body.anime_searches
+        and not body.song_name_searches
+        and not body.artist_searches
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="You need to provide at least one search parameter",
+        )
+
+    if len(body.anime_searches + body.song_name_searches + body.artist_searches) > 5:
+        raise HTTPException(
+            status_code=400,
+            detail="You can't provide more than 5 sub-search parameters",
+        )
+
+    for anime_search in body.anime_searches:
+        if anime_search.partial_match and len(anime_search.anime_name) <= 3:
+            raise HTTPException(
+                status_code=400,
+                detail="anime_name must be at least 4 characters long if partial_match is True",
+            )
+
+    for song_name_search in body.song_name_searches:
+        if song_name_search.partial_match and len(song_name_search.song_name) <= 3:
+            raise HTTPException(
+                status_code=400,
+                detail="song_name must be at least 4 characters long if partial_match is True",
+            )
+
+    for artist_search in body.artist_searches:
+        if artist_search.partial_match and len(artist_search.artist_name) <= 3:
+            raise HTTPException(
+                status_code=400,
+                detail="artist_name must be at least 4 characters long if partial_match is True",
+            )
+
+    songs_list = search_database.get_global_search_songs_list(
+        body.anime_searches,
+        body.song_name_searches,
+        body.artist_searches,
+        body.combination_logic,
+    )
+
+    return songs_list
+
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "main:app",
+        host=ANISONGDB_API_HOST,
+        port=ANISONGDB_API_PORT,
+        reload=UVICORN_RELOAD_FLAG,
+    )
