@@ -2,7 +2,6 @@
 
 TODO list before using this in production
 
-> - Implement support for Back-ups
 > - Artist with multiple role in same line_up
 > - sort results
 > - reverse line ups order so that it goes 0 = oldest, 1 = second oldest, etc... & automatically assign newest to new songs
@@ -11,11 +10,15 @@ TODO list before using this in production
 > - Document the consequences of attributes not updated regularly better
 > - Mentions front-end in the readme
 > - Search artist name directly if no ID found
-> - Finish implementing current search parameters for each end points
 > - Add case sensitive & exact match search possibilities
-> - Use max number of songs earlier in the search to optimize edge cases
 > - Rework the front-end with the new API
 > - Implement the new front-end and back-end in a development server, and let people who have been using the old version test it and adapt their code to the new API
+
+Implemented but need further testing
+
+> - Implement support for Back-ups
+> - Finish implementing current search parameters for each end points
+> - Use max number of songs earlier in the search to optimize edge cases
 
 This repository contains the future back-end of [AnisongDB](https://anisongdb.com/).  
 Built with [FastAPI](https://fastapi.tiangolo.com/)

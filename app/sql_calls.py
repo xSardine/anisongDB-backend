@@ -1,3 +1,4 @@
+import datetime
 from io_classes import *
 
 import re
@@ -13,6 +14,7 @@ A collection of useful functions to extract data from the database
 """
 
 DATABASE_PATH = config("DATABASE_PATH")
+LOGS_PATH = config("LOGS_PATH")
 MAX_RESULTS_PER_SEARCH = config("MAX_RESULTS_PER_SEARCH")
 
 
@@ -249,9 +251,14 @@ def regexp(expr: str, item: str):
         pass
 
 
-def connect_to_database():
+def connect_to_database(database_path=DATABASE_PATH):
     """
     Connect to the database and return the connection's cursor
+
+    Parameters
+    ----------
+    database_path : str, optional
+        The path to the database, by default DATABASE_PATH
 
     Returns
     -------
@@ -260,7 +267,7 @@ def connect_to_database():
     """
 
     try:
-        sqliteConnection = sqlite3.connect(DATABASE_PATH)
+        sqliteConnection = sqlite3.connect(database_path)
         sqliteConnection.create_function("REGEXP", 2, regexp)
         cursor = sqliteConnection.cursor()
         return cursor
@@ -521,3 +528,106 @@ def get_songs_list_from_links(cursor: sqlite3.Cursor, link: str):
     get_songs_from_link = f"SELECT * from songsFull WHERE HQ REGEXP ? OR MQ REGEXP ? OR audio REGEXP ? LIMIT {MAX_RESULTS_PER_SEARCH}"
     songs = run_sql_command(cursor, get_songs_from_link, [link, link, link])
     return songs
+
+
+def add_logs(
+    nb_results: int = 0,
+    execution_time: int = 0,
+    ann_id: int = "NULL",
+    anime_name: str = "NULL",
+    song_name: str = "NULL",
+    artist_id: int = "NULL",
+    artist_name: str = "NULL",
+    max_other_artists: int = 99,
+    group_granularity: int = 0,
+    credit_types: List[CreditType] = [
+        CreditType.vocalist,
+        CreditType.backing_vocalist,
+        CreditType.performer,
+        CreditType.composer,
+        CreditType.arranger,
+    ],
+    song_types: List[int] = [1, 2, 3],
+    song_categories: List[SongCategory] = [
+        SongCategory.Standard,
+        SongCategory.Chanting,
+        SongCategory.Character,
+        SongCategory.Instrumental,
+    ],
+    song_difficulty_range: IntRange = IntRange(min=0, max=100),
+    anime_types: List[AnimeType] = [
+        AnimeType.TV,
+        AnimeType.movie,
+        AnimeType.OVA,
+        AnimeType.special,
+        AnimeType.ONA,
+    ],
+    anime_seasons: List[str] = "NULL",
+    anime_genres: List[str] = "NULL",
+    anime_tags: List[str] = "NULL",
+    partial_match: bool = True,
+    ignore_duplicates: bool = False,
+    max_results_per_search: int = "NULL",
+) -> None:
+    sqliteConnection = sqlite3.connect(LOGS_PATH)
+    cursor = sqliteConnection.cursor()
+    run_sql_command(
+        cursor,
+        """CREATE TABLE IF NOT EXISTS logs(
+            date TEXT,
+            nb_results INTEGER,
+            execution_time FLOAT,
+
+            ann_id INTEGER, 
+            anime_name TEXT,
+            anime_types TEXT, 
+            anime_seasons TEXT, 
+            anime_genres TEXT, 
+            anime_tags TEXT, 
+
+            song_name TEXT, 
+            song_types TEXT, 
+            song_categories TEXT, 
+            song_difficulty_min TEXT,
+            song_difficulty_max TEXT,
+
+            artist_id INTEGER, 
+            artist_name TEXT, 
+            max_other_artists INTEGER,
+            group_granularity INTEGER,
+            credit_types TEXT,
+            
+            partial_match BIT,
+            ignore_duplicates BIT, 
+            max_results_per_search INTEGER
+        )""",
+    )
+
+    credit_types = f"'{','.join(credit_types)}'"
+
+    anime_types = f"'{','.join(anime_types)}'"
+
+    song_types = f"'{','.join([str(song_type) for song_type in song_types])}'"
+    song_categories = f"'{','.join(song_categories)}'"
+
+    anime_seasons = f"'{','.join(anime_seasons)}'" if anime_seasons else "NULL"
+    anime_genres = f"'{','.join(anime_genres)}'" if anime_genres else "NULL"
+    anime_tags = f"'{','.join(anime_tags)}'" if anime_tags else "NULL"
+
+    log = f"""INSERT INTO logs (
+        date, nb_results, execution_time,
+        ann_id, anime_name, anime_types, anime_seasons, anime_genres, anime_tags, 
+        song_name, song_types, song_categories, song_difficulty_min, song_difficulty_max, 
+        artist_id, artist_name, max_other_artists, group_granularity, credit_types, 
+        partial_match, ignore_duplicates, max_results_per_search) VALUES (
+        '{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', {nb_results}, {round(execution_time, 2)},
+        {ann_id}, '{anime_name}', {anime_types}, {anime_seasons}, {anime_genres}, {anime_tags}, 
+        '{song_name}', {song_types}, {song_categories}, {song_difficulty_range.min}, {song_difficulty_range.max},
+        {artist_id}, '{artist_name}', {max_other_artists}, {group_granularity},{credit_types},
+        {partial_match}, {ignore_duplicates}, {max_results_per_search}
+        )"""
+    print(log)
+    run_sql_command(cursor, log)
+
+    sqliteConnection.commit()
+    cursor.close()
