@@ -5,6 +5,7 @@ randomScripts/
 app/data/enhanced_amq_database.sqlite
 app/data/back-up/
 app/data/old/
+app/data/logs/
 misc_scripts/updateLogs.txt
 
 # Byte-compiled / optimized / DLL files

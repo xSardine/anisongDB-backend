@@ -4,7 +4,7 @@ import utils
 from io_classes import *
 
 from random import randrange
-from typing import List
+import time
 
 import uvicorn
 from fastapi import Depends, FastAPI, HTTPException
@@ -61,6 +61,8 @@ ANISONGDB_API_PORT = config("ANISONGDB_API_PORT", cast=int)
 
 # App
 MAX_RESULTS_PER_SEARCH = config("MAX_RESULTS_PER_SEARCH", cast=int)
+DATABASE_PATH = config("DATABASE_PATH")
+LOGS_PATH = config("LOGS_PATH")
 
 # Redis
 REDIS_HOST = config("REDIS_HOST")
@@ -75,6 +77,8 @@ print(
     - ANISONGDB_API_HOST = {ANISONGDB_API_HOST}
     - ANISONGDB_API_PORT = {ANISONGDB_API_PORT}
     - MAX_RESULTS_PER_SEARCH = {MAX_RESULTS_PER_SEARCH}
+    - DATABASE_PATH = {DATABASE_PATH}
+    - LOGS_PATH = {LOGS_PATH}
     - REDIS_HOST = {REDIS_HOST}
     - REDIS_PORT = {REDIS_PORT}
     - UVICORN_RELOAD_FLAG = {UVICORN_RELOAD_FLAG} # Not used when deployed with Docker
@@ -130,6 +134,7 @@ async def get_50_random_songs():
     ],
 )
 async def anime_search(body: AnimeSearchParams):
+    start_time = time.time()
     if body.partial_match and len(body.anime_name) <= 3:
         raise HTTPException(
             status_code=400,
@@ -137,7 +142,7 @@ async def anime_search(body: AnimeSearchParams):
         )
 
     song_types = utils.format_song_types_to_integer(body.song_types)
-    songs_list = search_database.get_anime_search_songs_list(
+    results = search_database.get_anime_search_songs_list(
         body.anime_name,
         body.partial_match,
         body.ignore_duplicates,
@@ -151,7 +156,23 @@ async def anime_search(body: AnimeSearchParams):
         MAX_RESULTS_PER_SEARCH,
     )
 
-    return songs_list
+    sql_calls.add_logs(
+        execution_time=time.time() - start_time,
+        nb_results=len(results["songs"]),
+        anime_name=body.anime_name,
+        partial_match=body.partial_match,
+        ignore_duplicates=body.ignore_duplicates,
+        song_types=song_types,
+        song_categories=body.song_categories,
+        song_difficulty_range=body.song_difficulty_range,
+        anime_types=body.anime_types,
+        anime_seasons=body.anime_seasons,
+        anime_genres=body.anime_genres,
+        anime_tags=body.anime_tags,
+        max_results_per_search=MAX_RESULTS_PER_SEARCH,
+    )
+
+    return results
 
 
 @app.post(
@@ -164,8 +185,9 @@ async def anime_search(body: AnimeSearchParams):
     ],
 )
 async def anime_ann_id_search(body: AnimeAnnIdSearchParams):
+    start_time = time.time()
     song_types = utils.format_song_types_to_integer(body.song_types)
-    songs_list = search_database.get_ann_ids_songs_list(
+    results = search_database.get_ann_ids_songs_list(
         [body.ann_id],
         body.ignore_duplicates,
         song_types,
@@ -174,7 +196,18 @@ async def anime_ann_id_search(body: AnimeAnnIdSearchParams):
         MAX_RESULTS_PER_SEARCH,
     )
 
-    return songs_list
+    sql_calls.add_logs(
+        execution_time=time.time() - start_time,
+        nb_results=len(results["songs"]),
+        ann_id=body.ann_id,
+        ignore_duplicates=body.ignore_duplicates,
+        song_types=song_types,
+        song_categories=body.song_categories,
+        song_difficulty_range=body.song_difficulty_range,
+        max_results_per_search=MAX_RESULTS_PER_SEARCH,
+    )
+
+    return results
 
 
 @app.post(
@@ -189,6 +222,7 @@ async def anime_ann_id_search(body: AnimeAnnIdSearchParams):
     ],
 )
 async def song_name_search(body: SongSearchParams):
+    start_time = time.time()
     if body.partial_match and len(body.song_name) <= 3:
         raise HTTPException(
             status_code=400,
@@ -196,7 +230,7 @@ async def song_name_search(body: SongSearchParams):
         )
 
     song_types = utils.format_song_types_to_integer(body.song_types)
-    songs_list = search_database.get_song_name_search_songs_list(
+    results = search_database.get_song_name_search_songs_list(
         body.song_name,
         body.partial_match,
         body.ignore_duplicates,
@@ -210,7 +244,23 @@ async def song_name_search(body: SongSearchParams):
         MAX_RESULTS_PER_SEARCH,
     )
 
-    return songs_list
+    sql_calls.add_logs(
+        execution_time=time.time() - start_time,
+        nb_results=len(results["songs"]),
+        song_name=body.song_name,
+        partial_match=body.partial_match,
+        ignore_duplicates=body.ignore_duplicates,
+        song_types=song_types,
+        song_categories=body.song_categories,
+        song_difficulty_range=body.song_difficulty_range,
+        anime_types=body.anime_types,
+        anime_seasons=body.anime_seasons,
+        anime_genres=body.anime_genres,
+        anime_tags=body.anime_tags,
+        max_results_per_search=MAX_RESULTS_PER_SEARCH,
+    )
+
+    return results
 
 
 @app.post(
@@ -223,8 +273,10 @@ async def song_name_search(body: SongSearchParams):
     ],
 )
 async def artist_Id_search(body: ArtistIdSearchParams):
+    start_time = time.time()
+
     song_types = utils.format_song_types_to_integer(body.song_types)
-    songs_list = search_database.get_artists_ids_songs_list(
+    results = search_database.get_artists_ids_songs_list(
         [body.artist_id],
         body.max_other_artists,
         body.group_granularity,
@@ -237,9 +289,28 @@ async def artist_Id_search(body: ArtistIdSearchParams):
         body.anime_seasons,
         body.anime_genres,
         body.anime_tags,
+        MAX_RESULTS_PER_SEARCH,
     )
 
-    return songs_list
+    sql_calls.add_logs(
+        execution_time=time.time() - start_time,
+        nb_results=len(results["songs"]),
+        artist_id=body.artist_id,
+        max_other_artists=body.max_other_artists,
+        group_granularity=body.group_granularity,
+        credit_types=body.credit_types,
+        ignore_duplicates=body.ignore_duplicates,
+        song_types=song_types,
+        song_categories=body.song_categories,
+        song_difficulty_range=body.song_difficulty_range,
+        anime_types=body.anime_types,
+        anime_seasons=body.anime_seasons,
+        anime_genres=body.anime_genres,
+        anime_tags=body.anime_tags,
+        max_results_per_search=MAX_RESULTS_PER_SEARCH,
+    )
+
+    return results
 
 
 @app.post(
@@ -254,6 +325,7 @@ async def artist_Id_search(body: ArtistIdSearchParams):
     ],
 )
 async def artist_search(body: ArtistSearchParams):
+    start_time = time.time()
     if body.partial_match and len(body.artist_name) <= 3:
         raise HTTPException(
             status_code=400,
@@ -261,7 +333,7 @@ async def artist_search(body: ArtistSearchParams):
         )
 
     song_types = utils.format_song_types_to_integer(body.song_types)
-    songs_list = search_database.get_artists_search_songs_list(
+    results = search_database.get_artists_search_songs_list(
         body.artist_name,
         body.partial_match,
         body.max_other_artists,
@@ -275,9 +347,29 @@ async def artist_search(body: ArtistSearchParams):
         body.anime_seasons,
         body.anime_genres,
         body.anime_tags,
+        MAX_RESULTS_PER_SEARCH,
     )
 
-    return songs_list
+    sql_calls.add_logs(
+        execution_time=time.time() - start_time,
+        nb_results=len(results["songs"]),
+        artist_name=body.artist_name,
+        partial_match=body.partial_match,
+        max_other_artists=body.max_other_artists,
+        group_granularity=body.group_granularity,
+        credit_types=body.credit_types,
+        ignore_duplicates=body.ignore_duplicates,
+        song_types=song_types,
+        song_categories=body.song_categories,
+        song_difficulty_range=body.song_difficulty_range,
+        anime_types=body.anime_types,
+        anime_seasons=body.anime_seasons,
+        anime_genres=body.anime_genres,
+        anime_tags=body.anime_tags,
+        max_results_per_search=MAX_RESULTS_PER_SEARCH,
+    )
+
+    return results
 
 
 @app.post(

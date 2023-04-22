@@ -261,6 +261,7 @@ def get_artists_ids_songs_list(
     anime_seasons: List[str],
     anime_genres: List[str],
     anime_tags: List[str],
+    max_results_per_search: int,
 ) -> List[SongEntry]:
     """
     Get the list of songs from a list of artist ids
@@ -291,6 +292,8 @@ def get_artists_ids_songs_list(
         List of anime genres to search
     anime_tags : List[str]
         List of anime tags to search
+    max_results_per_search : int
+        Maximum number of results per search
 
     Returns
     -------
@@ -328,6 +331,7 @@ def get_artists_ids_songs_list(
         anime_seasons=anime_seasons,
         anime_genres=anime_genres,
         anime_tags=anime_tags,
+        max_results_per_search=max_results_per_search,
     )
 
     filtered_songs = [
@@ -360,6 +364,7 @@ def get_artists_search_songs_list(
     anime_seasons: List[str],
     anime_genres: List[str],
     anime_tags: List[str],
+    max_results_per_search: int,
 ) -> List[SongEntry]:
     """
     artist_name : str
@@ -388,6 +393,8 @@ def get_artists_search_songs_list(
         List of anime genres to search
     anime_tags : List[str]
         List of anime tags to search
+    max_results_per_search : int
+        Maximum number of results per search
 
     Returns
     -------
@@ -415,6 +422,7 @@ def get_artists_search_songs_list(
         anime_seasons,
         anime_genres,
         anime_tags,
+        max_results_per_search,
     )
 
 
