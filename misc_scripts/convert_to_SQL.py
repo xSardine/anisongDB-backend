@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 database = Path("../app/data/enhanced_amq_database.sqlite")
-nerfedDatabase = Path("../app/data/enhanced_amq_databas_nerfed.sqlite")
+nerfedDatabase = Path("../app/data/enhanced_amq_database_nerfed.sqlite")
 song_DATABASE_PATH = Path("../app/data/song_database.json")
 group_DATABASE_PATH = Path("../app/data/song_database.json")
 artist_DATABASE_PATH = Path("../app/data/artist_database.json")
@@ -42,7 +42,7 @@ PRAGMA foreign_keys = 1;
 
 CREATE TABLE animes (
     "ann_id" INTEGER NOT NULL PRIMARY KEY,
-    "anime_expand_name" VARCHAR(255) NOT NULL, 
+    "anime_expand_name" VARCHAR(255) NOT NULL,
     "anime_en_name" VARCHAR(255),
     "anime_jp_name" VARCHAR(255),
     "anime_season" VARCHAR(255),
@@ -147,148 +147,148 @@ create TABLE link_anime_alt_name (
 );
 
 
-CREATE VIEW 
-    artistsNames AS 
-SELECT 
-    orderedNames.inserted_order, 
-    artists.id, 
-    group_concat(orderedNames.name, "\$") AS names, 
-    artists.is_vocalist, 
-    artists.is_performer, 
+CREATE VIEW
+    artistsNames AS
+SELECT
+    orderedNames.inserted_order,
+    artists.id,
+    group_concat(orderedNames.name, "\\$") AS names,
+    artists.is_vocalist,
+    artists.is_performer,
     artists.is_composer,
     artists.is_arranger
-FROM 
+FROM
     artists
-LEFT JOIN 
+LEFT JOIN
     (SELECT * FROM link_artist_name ORDER BY link_artist_name.inserted_order) AS orderedNames
-ON artists.id = 
+ON artists.id =
     orderedNames.artist_id
-GROUP BY 
+GROUP BY
     artists.id;
 
-CREATE VIEW 
-    artistsMembers AS 
-SELECT 
-    artists.id, 
+CREATE VIEW
+    artistsMembers AS
+SELECT
+    artists.id,
     link_artist_line_up.group_line_up_id,
-    group_concat(link_artist_line_up.artist_role_type) as member_role_type, 
-    group_concat(link_artist_line_up.artist_id) AS members, 
-    group_concat(link_artist_line_up.artist_line_up_id) as members_line_up 
-FROM 
+    group_concat(link_artist_line_up.artist_role_type) as member_role_type,
+    group_concat(link_artist_line_up.artist_id) AS members,
+    group_concat(link_artist_line_up.artist_line_up_id) as members_line_up
+FROM
     artists
-LEFT JOIN 
-    link_artist_line_up ON artists.id = link_artist_line_up.group_id 
-GROUP BY 
-    artists.id, 
+LEFT JOIN
+    link_artist_line_up ON artists.id = link_artist_line_up.group_id
+GROUP BY
+    artists.id,
     link_artist_line_up.group_line_up_id;
 
-CREATE VIEW 
-    artistsGroups AS 
-SELECT 
+CREATE VIEW
+    artistsGroups AS
+SELECT
     artists.id,
     group_concat(link_artist_line_up.artist_role_type) as groups_role_types,
     group_concat(link_artist_line_up.group_id) AS groups_ids,
     group_concat(link_artist_line_up.group_line_up_id) as groups_line_ups
-FROM 
-    artists 
-LEFT JOIN 
-    link_artist_line_up ON artists.id = link_artist_line_up.artist_id 
-GROUP BY 
+FROM
+    artists
+LEFT JOIN
+    link_artist_line_up ON artists.id = link_artist_line_up.artist_id
+GROUP BY
     artists.id,
     link_artist_line_up.artist_role_type;
 
-CREATE VIEW 
+CREATE VIEW
     animesFull AS
-SELECT 
-    animes.ann_id, 
-    animes.anime_expand_name, 
-    animes.anime_jp_name, 
-    animes.anime_en_name, 
-    group_concat(link_anime_alt_name.name, "\$") AS anime_alt_names, 
-    animes.anime_type, 
+SELECT
+    animes.ann_id,
+    animes.anime_expand_name,
+    animes.anime_jp_name,
+    animes.anime_en_name,
+    group_concat(link_anime_alt_name.name, "\\$") AS anime_alt_names,
+    animes.anime_type,
     animes.anime_season
-FROM 
+FROM
     animes
-LEFT JOIN 
+LEFT JOIN
     link_anime_alt_name ON animes.ann_id = link_anime_alt_name.ann_id
-GROUP BY 
+GROUP BY
     animes.ann_id;
 
-CREATE VIEW 
+CREATE VIEW
     songsAnimes AS
-SELECT 
-    animesFull.ann_id, 
-    animesFull.anime_expand_name, 
-    animesFull.anime_jp_name, 
-    animesFull.anime_en_name, 
-    animesFull.anime_alt_names, 
-    animesFull.anime_season, 
-    animesFull.anime_type, 
-    songs.id as song_id, 
-    songs.ann_song_id, 
-    songs.song_type, 
-    songs.song_number, 
-    songs.song_name, 
-    songs.song_artist, 
-    songs.song_difficulty, 
-    songs.song_category, 
-    songs.HQ, 
-    songs.MQ, 
+SELECT
+    animesFull.ann_id,
+    animesFull.anime_expand_name,
+    animesFull.anime_jp_name,
+    animesFull.anime_en_name,
+    animesFull.anime_alt_names,
+    animesFull.anime_season,
+    animesFull.anime_type,
+    songs.id as song_id,
+    songs.ann_song_id,
+    songs.song_type,
+    songs.song_number,
+    songs.song_name,
+    songs.song_artist,
+    songs.song_difficulty,
+    songs.song_category,
+    songs.HQ,
+    songs.MQ,
     songs.audio
-FROM 
+FROM
     animesFull
-LEFT JOIN 
+LEFT JOIN
     songs ON animesFull.ann_id = songs.ann_id;
 
-CREATE VIEW 
+CREATE VIEW
     songsArtists AS
-SELECT 
-    songs.id as song_id, 
+SELECT
+    songs.id as song_id,
     group_concat(link_song_artist.artist_id) AS artists,
     link_song_artist.role_type,
     group_concat(link_song_artist.artist_line_up_id) AS artist_line_up_id
-FROM 
-    songs 
-LEFT JOIN 
+FROM
+    songs
+LEFT JOIN
     link_song_artist ON songs.id = link_song_artist.song_id
-GROUP BY 
+GROUP BY
     songs.id,
     link_song_artist.role_type;
 
-CREATE VIEW 
+CREATE VIEW
     songsFull AS
-SELECT 
-    songsAnimes.ann_id, 
+SELECT
+    songsAnimes.ann_id,
     songsAnimes.anime_expand_name,
-    songsAnimes.anime_jp_name, 
-    songsAnimes.anime_en_name, 
-    songsAnimes.anime_alt_names, 
-    songsAnimes.anime_season, 
-    songsAnimes.anime_type, 
-    songsAnimes.song_id, 
-    songsAnimes.ann_song_id, 
-    songsAnimes.song_type, 
-    songsAnimes.song_number, 
-    songsAnimes.song_name, 
-    songsAnimes.song_artist, 
-    songsAnimes.song_difficulty, 
-    songsAnimes.song_category, 
-    MAX(CASE WHEN songsArtists.role_type = 'vocalist' THEN songsArtists.artists ELSE NULL END) AS vocalists, 
-    MAX(CASE WHEN songsArtists.role_type = 'vocalist' THEN songsArtists.artist_line_up_id ELSE NULL END) AS vocalists_line_up, 
-    MAX(CASE WHEN songsArtists.role_type = 'backing_vocalist' THEN songsArtists.artists ELSE NULL END) AS backing_vocalists, 
-    MAX(CASE WHEN songsArtists.role_type = 'backing_vocalist' THEN songsArtists.artist_line_up_id ELSE NULL END) AS backing_vocalists_line_up, 
-    MAX(CASE WHEN songsArtists.role_type = 'performer' THEN songsArtists.artists ELSE NULL END) AS performers, 
-    MAX(CASE WHEN songsArtists.role_type = 'performer' THEN songsArtists.artist_line_up_id ELSE NULL END) AS performers_line_up, 
-    MAX(CASE WHEN songsArtists.role_type = 'composer' THEN songsArtists.artists ELSE NULL END) AS composers, 
-    MAX(CASE WHEN songsArtists.role_type = 'composer' THEN songsArtists.artist_line_up_id ELSE NULL END) AS composers_line_up, 
-    MAX(CASE WHEN songsArtists.role_type = 'arranger' THEN songsArtists.artists ELSE NULL END) AS arrangers, 
-    MAX(CASE WHEN songsArtists.role_type = 'arranger' THEN songsArtists.artist_line_up_id ELSE NULL END) AS arrangers_line_up, 
-    songsAnimes.HQ, 
-    songsAnimes.MQ, 
+    songsAnimes.anime_jp_name,
+    songsAnimes.anime_en_name,
+    songsAnimes.anime_alt_names,
+    songsAnimes.anime_season,
+    songsAnimes.anime_type,
+    songsAnimes.song_id,
+    songsAnimes.ann_song_id,
+    songsAnimes.song_type,
+    songsAnimes.song_number,
+    songsAnimes.song_name,
+    songsAnimes.song_artist,
+    songsAnimes.song_difficulty,
+    songsAnimes.song_category,
+    MAX(CASE WHEN songsArtists.role_type = 'vocalist' THEN songsArtists.artists ELSE NULL END) AS vocalists,
+    MAX(CASE WHEN songsArtists.role_type = 'vocalist' THEN songsArtists.artist_line_up_id ELSE NULL END) AS vocalists_line_up,
+    MAX(CASE WHEN songsArtists.role_type = 'backing_vocalist' THEN songsArtists.artists ELSE NULL END) AS backing_vocalists,
+    MAX(CASE WHEN songsArtists.role_type = 'backing_vocalist' THEN songsArtists.artist_line_up_id ELSE NULL END) AS backing_vocalists_line_up,
+    MAX(CASE WHEN songsArtists.role_type = 'performer' THEN songsArtists.artists ELSE NULL END) AS performers,
+    MAX(CASE WHEN songsArtists.role_type = 'performer' THEN songsArtists.artist_line_up_id ELSE NULL END) AS performers_line_up,
+    MAX(CASE WHEN songsArtists.role_type = 'composer' THEN songsArtists.artists ELSE NULL END) AS composers,
+    MAX(CASE WHEN songsArtists.role_type = 'composer' THEN songsArtists.artist_line_up_id ELSE NULL END) AS composers_line_up,
+    MAX(CASE WHEN songsArtists.role_type = 'arranger' THEN songsArtists.artists ELSE NULL END) AS arrangers,
+    MAX(CASE WHEN songsArtists.role_type = 'arranger' THEN songsArtists.artist_line_up_id ELSE NULL END) AS arrangers_line_up,
+    songsAnimes.HQ,
+    songsAnimes.MQ,
     songsAnimes.audio
-FROM 
+FROM
     songsAnimes
-INNER JOIN 
+INNER JOIN
     songsArtists ON songsAnimes.song_id = songsArtists.song_id
 GROUP BY
     songsAnimes.song_id;

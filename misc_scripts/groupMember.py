@@ -412,7 +412,7 @@ def process():
                 linked_songs = utils.ask_song_ids()
 
                 if not linked_songs:
-                    validation_message = f"There are no songs to link to this line up, are you sure you want to continue ?\n"
+                    validation_message = "There are no songs to link to this line up, are you sure you want to continue ?\n"
                     validation = utils.ask_validation(validation_message)
                     if not validation:
                         print("USER CANCELLED")

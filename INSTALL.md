@@ -23,26 +23,25 @@ sudo service redis-server start
 
 You will need to install [Python](https://www.python.org/downloads/)
 
-Then, install the dependencies using `requirements.txt` :
+Then, install poetry :
 
 ```shell
-pip install -r requirements.txt
+pip install poetry
 ```  
+
+Then run the following commands to install the dependencies and start the application :
+
+```shell
+poetry install
+poetry shell
+```
 
 Configure the `.env` file if needed.
 
-Then, start the application with either :
+Then, start the application with :
 
 ```shell
-cd app
-python main.py
-```
-
-or
-
-```shell
-cd app
-uvicorn main:app --host 127.0.0.1 --port 8000 --reload
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 ## Production Environments

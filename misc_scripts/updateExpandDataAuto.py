@@ -1,3 +1,4 @@
+from httpx import TimeoutException
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
@@ -5,8 +6,12 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from pathlib import Path
 from datetime import datetime
-import time, json, re
-import sys, os, getopt
+import time
+import json
+import re
+import sys
+import os
+import getopt
 import splitting
 import utils
 
@@ -222,8 +227,9 @@ def selenium_retrieve_data(amq_url, amq_username, amq_password):
                 element = WebDriverWait(driver, 10).until(
                     EC.presence_of_element_located((By.ID, "hiddenExpand"))
                 )
-            except:
+            except TimeoutException as e:
                 add_log("Timeout, trying again")
+                print(e)
                 continue
 
             expand = element.get_property("variable")

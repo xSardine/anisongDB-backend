@@ -1,12 +1,31 @@
-import search_database
-import sql_calls
-import utils
-from io_classes import *
+from .search_database import (
+    get_anime_search_songs_list,
+    get_ann_ids_songs_list,
+    get_song_name_search_songs_list,
+    get_artists_ids_songs_list,
+    get_artists_search_songs_list,
+    get_global_search_songs_list,
+)
+from .sql_calls import (
+    connect_to_database,
+    run_sql_command,
+    extract_artist_database,
+    add_logs,
+)
+from .utils import format_results, format_song_types_to_integer
+from .io_classes import (
+    Results,
+    AnimeSearchParams,
+    AnimeAnnIdSearchParams,
+    ArtistIdSearchParams,
+    SongSearchParams,
+    ArtistSearchParams,
+    GlobalSearch,
+)
 
 from random import randrange
 import time
 
-import uvicorn
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
@@ -24,14 +43,14 @@ This is the documentation for AnisongDB's API.
 
 ## Contact
 
-For any questions regarding this API, please contact xSardine#8168 on Discord.  
+For any questions regarding this API, please contact xSardine#8168 on Discord.
 For any technical questions, please create an issue on the corresponding repositories following <a href="https://github.com/xSardine/anisongDB-backend/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">guidelines</a>.
 
 ## Disclaimer
 
-This API is still in development and is a work in progress.  
-Be aware that even though I will try to keep incompatibilies between versions at a minimum, the API is subject to change.  
-For performance reasons, the API is currently **limited to 350 results** per requests.
+This API is still in development and is a work in progress.<br>
+Be aware that even though I will try to keep incompatibilies between versions at a minimum, the API is subject to change.<br>
+For performance reasons, the API is currently **limited to 350 results** per requests.<br>
 
 ## Endpoints
 
@@ -55,10 +74,6 @@ app = FastAPI(
 
 
 # Get .env variables
-# FastAPI
-ANISONGDB_API_HOST = config("ANISONGDB_API_HOST")
-ANISONGDB_API_PORT = config("ANISONGDB_API_PORT", cast=int)
-
 # App
 MAX_RESULTS_PER_SEARCH = config("MAX_RESULTS_PER_SEARCH", cast=int)
 DATABASE_PATH = config("DATABASE_PATH")
@@ -68,20 +83,14 @@ LOGS_PATH = config("LOGS_PATH")
 REDIS_HOST = config("REDIS_HOST")
 REDIS_PORT = config("REDIS_PORT", cast=int)
 
-# Local mode only
-UVICORN_RELOAD_FLAG = config("UVICORN_RELOAD_FLAG", default=False, cast=bool)
-
 print(
     f"""
     Config:
-    - ANISONGDB_API_HOST = {ANISONGDB_API_HOST}
-    - ANISONGDB_API_PORT = {ANISONGDB_API_PORT}
     - MAX_RESULTS_PER_SEARCH = {MAX_RESULTS_PER_SEARCH}
     - DATABASE_PATH = {DATABASE_PATH}
     - LOGS_PATH = {LOGS_PATH}
     - REDIS_HOST = {REDIS_HOST}
     - REDIS_PORT = {REDIS_PORT}
-    - UVICORN_RELOAD_FLAG = {UVICORN_RELOAD_FLAG} # Not used when deployed with Docker
 """
 )
 
@@ -105,19 +114,19 @@ async def startup():
     ],
 )
 async def get_50_random_songs():
-    cursor = sql_calls.connect_to_database()
+    cursor = connect_to_database()
 
     songIds = [randrange(39000) for _ in range(50)]
 
-    artist_database = sql_calls.extract_artist_database()
+    artist_database = extract_artist_database()
 
     # Extract every song from song IDs
     get_songs_from_songs_ids = (
         f"SELECT * from songsFull WHERE songId IN ({','.join('?'*len(songIds))})"
     )
-    songs = sql_calls.run_sql_command(cursor, get_songs_from_songs_ids, songIds)
+    songs = run_sql_command(cursor, get_songs_from_songs_ids, songIds)
 
-    return utils.format_results(artist_database, songs)
+    return format_results(artist_database, songs)
 
 
 @app.post(
@@ -141,8 +150,8 @@ async def anime_search(body: AnimeSearchParams):
             detail="anime_name must be at least 4 characters long if partial_match is True",
         )
 
-    song_types = utils.format_song_types_to_integer(body.song_types)
-    results = search_database.get_anime_search_songs_list(
+    song_types = format_song_types_to_integer(body.song_types)
+    results = get_anime_search_songs_list(
         body.anime_name,
         body.partial_match,
         body.ignore_duplicates,
@@ -156,7 +165,7 @@ async def anime_search(body: AnimeSearchParams):
         MAX_RESULTS_PER_SEARCH,
     )
 
-    sql_calls.add_logs(
+    add_logs(
         execution_time=time.time() - start_time,
         nb_results=len(results["songs"]),
         anime_name=body.anime_name,
@@ -186,8 +195,8 @@ async def anime_search(body: AnimeSearchParams):
 )
 async def anime_ann_id_search(body: AnimeAnnIdSearchParams):
     start_time = time.time()
-    song_types = utils.format_song_types_to_integer(body.song_types)
-    results = search_database.get_ann_ids_songs_list(
+    song_types = format_song_types_to_integer(body.song_types)
+    results = get_ann_ids_songs_list(
         [body.ann_id],
         body.ignore_duplicates,
         song_types,
@@ -196,7 +205,7 @@ async def anime_ann_id_search(body: AnimeAnnIdSearchParams):
         MAX_RESULTS_PER_SEARCH,
     )
 
-    sql_calls.add_logs(
+    add_logs(
         execution_time=time.time() - start_time,
         nb_results=len(results["songs"]),
         ann_id=body.ann_id,
@@ -229,8 +238,8 @@ async def song_name_search(body: SongSearchParams):
             detail="song_name must be at least 4 characters long if partial_match is True",
         )
 
-    song_types = utils.format_song_types_to_integer(body.song_types)
-    results = search_database.get_song_name_search_songs_list(
+    song_types = format_song_types_to_integer(body.song_types)
+    results = get_song_name_search_songs_list(
         body.song_name,
         body.partial_match,
         body.ignore_duplicates,
@@ -244,7 +253,7 @@ async def song_name_search(body: SongSearchParams):
         MAX_RESULTS_PER_SEARCH,
     )
 
-    sql_calls.add_logs(
+    add_logs(
         execution_time=time.time() - start_time,
         nb_results=len(results["songs"]),
         song_name=body.song_name,
@@ -275,8 +284,8 @@ async def song_name_search(body: SongSearchParams):
 async def artist_Id_search(body: ArtistIdSearchParams):
     start_time = time.time()
 
-    song_types = utils.format_song_types_to_integer(body.song_types)
-    results = search_database.get_artists_ids_songs_list(
+    song_types = format_song_types_to_integer(body.song_types)
+    results = get_artists_ids_songs_list(
         [body.artist_id],
         body.max_other_artists,
         body.group_granularity,
@@ -292,7 +301,7 @@ async def artist_Id_search(body: ArtistIdSearchParams):
         MAX_RESULTS_PER_SEARCH,
     )
 
-    sql_calls.add_logs(
+    add_logs(
         execution_time=time.time() - start_time,
         nb_results=len(results["songs"]),
         artist_id=body.artist_id,
@@ -332,8 +341,8 @@ async def artist_search(body: ArtistSearchParams):
             detail="artist_name must be at least 4 characters long if partial_match is True",
         )
 
-    song_types = utils.format_song_types_to_integer(body.song_types)
-    results = search_database.get_artists_search_songs_list(
+    song_types = format_song_types_to_integer(body.song_types)
+    results = get_artists_search_songs_list(
         body.artist_name,
         body.partial_match,
         body.max_other_artists,
@@ -350,7 +359,7 @@ async def artist_search(body: ArtistSearchParams):
         MAX_RESULTS_PER_SEARCH,
     )
 
-    sql_calls.add_logs(
+    add_logs(
         execution_time=time.time() - start_time,
         nb_results=len(results["songs"]),
         artist_name=body.artist_name,
@@ -390,6 +399,10 @@ async def global_search(body: GlobalSearch):
         not body.anime_searches
         and not body.song_name_searches
         and not body.artist_searches
+        and not body.song_name_searches
+        and not body.artist_searches
+        and not body.song_name_searches
+        and not body.artist_searches
     ):
         raise HTTPException(
             status_code=400,
@@ -423,7 +436,7 @@ async def global_search(body: GlobalSearch):
                 detail="artist_name must be at least 4 characters long if partial_match is True",
             )
 
-    songs_list = search_database.get_global_search_songs_list(
+    songs_list = get_global_search_songs_list(
         body.anime_searches,
         body.song_name_searches,
         body.artist_searches,
@@ -431,12 +444,3 @@ async def global_search(body: GlobalSearch):
     )
 
     return songs_list
-
-
-if __name__ == "__main__":
-    uvicorn.run(
-        "main:app",
-        host=ANISONGDB_API_HOST,
-        port=ANISONGDB_API_PORT,
-        reload=UVICORN_RELOAD_FLAG,
-    )

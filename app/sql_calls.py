@@ -1,9 +1,8 @@
-import datetime
-from io_classes import *
+from .io_classes import AnimeType, CreditType, SongCategory, IntRange
 
 import re
+import datetime
 import sqlite3
-from pathlib import Path
 from functools import lru_cache
 from typing import Any, List
 
@@ -67,7 +66,7 @@ def extract_anime_database():
                 "anime_expand_name": song[1],
                 "anime_jp_name": song[2],
                 "anime_en_name": song[3],
-                "anime_alt_names": set(song[4].split("\$")) if song[4] else set(),
+                "anime_alt_names": set(song[4].split(r"\$")) if song[4] else set(),
                 "anime_season": song[5],
                 "anime_type": song[6],
                 "songs": [],
@@ -78,9 +77,14 @@ def extract_anime_database():
 
 
 @lru_cache(maxsize=None)
-def extract_artist_database():
+def extract_artist_database(database_path=DATABASE_PATH):
     """
     Extract the artist database and save it to cache
+
+    Parameters
+    ----------
+    database_path (str):
+        Path to the database, defaults to DATABASE_PATH environment variable
 
     Returns
     -------
@@ -90,7 +94,8 @@ def extract_artist_database():
 
     artist_database = {}
 
-    cursor = connect_to_database()
+    print(database_path)
+    cursor = connect_to_database(database_path)
 
     # Basic info
 
@@ -107,7 +112,7 @@ def extract_artist_database():
         is_arranger,
     ) in run_sql_command(cursor, extract_basic_info):
         artist_database[str(artist_id)] = {
-            "names": artist_names.split("\$"),
+            "names": artist_names.split(r"\$"),
             "groups": [],
             "line_ups": [],
             "vocalist": True if is_vocalist else False,
@@ -248,7 +253,8 @@ def regexp(expr: str, item: str):
         reg = re.compile(expr)
         return reg.search(item) is not None
     except Exception as e:
-        pass
+        print(e)
+        return ""
 
 
 def connect_to_database(database_path=DATABASE_PATH):
@@ -257,8 +263,8 @@ def connect_to_database(database_path=DATABASE_PATH):
 
     Parameters
     ----------
-    database_path : str, optional
-        The path to the database, by default DATABASE_PATH
+    database_path (str):
+        Path to the database, defaults to DATABASE_PATH environment variable
 
     Returns
     -------
@@ -382,10 +388,10 @@ def get_possibles_songs_from_filters(
         where_filters.append(f"lower(song_artist) REGEXP '{artist_name_regex}'")
 
     get_songs_from_filters_query = (
-        f"SELECT * from songsFull WHERE "
+        "SELECT * from songsFull WHERE "
         + " AND ".join(where_filters)
-        + (f" GROUP BY song_name, song_artist" if ignore_duplicates else "")
-        + (f" LIMIT {max_results_per_search}" if max_results_per_search != -1 else "")
+        + (" GROUP BY song_name, song_artist" if ignore_duplicates else "")
+        + (" LIMIT {max_results_per_search}" if max_results_per_search != -1 else "")
     )
 
     return run_sql_command(cursor, get_songs_from_filters_query)
@@ -534,10 +540,10 @@ def add_logs(
     nb_results: int = 0,
     execution_time: int = 0,
     ann_id: int = "NULL",
-    anime_name: str = "NULL",
-    song_name: str = "NULL",
+    anime_name: str = None,
+    song_name: str = None,
     artist_id: int = "NULL",
-    artist_name: str = "NULL",
+    artist_name: str = None,
     max_other_artists: int = 99,
     group_granularity: int = 0,
     credit_types: List[CreditType] = [
@@ -562,9 +568,9 @@ def add_logs(
         AnimeType.special,
         AnimeType.ONA,
     ],
-    anime_seasons: List[str] = "NULL",
-    anime_genres: List[str] = "NULL",
-    anime_tags: List[str] = "NULL",
+    anime_seasons: List[str] = None,
+    anime_genres: List[str] = None,
+    anime_tags: List[str] = None,
     partial_match: bool = True,
     ignore_duplicates: bool = False,
     max_results_per_search: int = "NULL",
@@ -578,27 +584,27 @@ def add_logs(
             nb_results INTEGER,
             execution_time FLOAT,
 
-            ann_id INTEGER, 
+            ann_id INTEGER,
             anime_name TEXT,
-            anime_types TEXT, 
-            anime_seasons TEXT, 
-            anime_genres TEXT, 
-            anime_tags TEXT, 
+            anime_types TEXT,
+            anime_seasons TEXT,
+            anime_genres TEXT,
+            anime_tags TEXT,
 
-            song_name TEXT, 
-            song_types TEXT, 
-            song_categories TEXT, 
+            song_name TEXT,
+            song_types TEXT,
+            song_categories TEXT,
             song_difficulty_min TEXT,
             song_difficulty_max TEXT,
 
-            artist_id INTEGER, 
-            artist_name TEXT, 
+            artist_id INTEGER,
+            artist_name TEXT,
             max_other_artists INTEGER,
             group_granularity INTEGER,
             credit_types TEXT,
-            
+
             partial_match BIT,
-            ignore_duplicates BIT, 
+            ignore_duplicates BIT,
             max_results_per_search INTEGER
         )""",
     )
@@ -610,20 +616,24 @@ def add_logs(
     song_types = f"'{','.join([str(song_type) for song_type in song_types])}'"
     song_categories = f"'{','.join(song_categories)}'"
 
+    anime_name = f"'{anime_name}'" if anime_name else "NULL"
+    song_name = f"'{song_name}'" if song_name else "NULL"
+    artist_name = f"'{artist_name}'" if artist_name else "NULL"
+
     anime_seasons = f"'{','.join(anime_seasons)}'" if anime_seasons else "NULL"
     anime_genres = f"'{','.join(anime_genres)}'" if anime_genres else "NULL"
     anime_tags = f"'{','.join(anime_tags)}'" if anime_tags else "NULL"
 
     log = f"""INSERT INTO logs (
         date, nb_results, execution_time,
-        ann_id, anime_name, anime_types, anime_seasons, anime_genres, anime_tags, 
-        song_name, song_types, song_categories, song_difficulty_min, song_difficulty_max, 
-        artist_id, artist_name, max_other_artists, group_granularity, credit_types, 
+        ann_id, anime_name, anime_types, anime_seasons, anime_genres, anime_tags,
+        song_name, song_types, song_categories, song_difficulty_min, song_difficulty_max,
+        artist_id, artist_name, max_other_artists, group_granularity, credit_types,
         partial_match, ignore_duplicates, max_results_per_search) VALUES (
         '{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', {nb_results}, {round(execution_time, 2)},
-        {ann_id}, '{anime_name}', {anime_types}, {anime_seasons}, {anime_genres}, {anime_tags}, 
-        '{song_name}', {song_types}, {song_categories}, {song_difficulty_range.min}, {song_difficulty_range.max},
-        {artist_id}, '{artist_name}', {max_other_artists}, {group_granularity},{credit_types},
+        {ann_id}, {anime_name}, {anime_types}, {anime_seasons}, {anime_genres}, {anime_tags},
+        {song_name}, {song_types}, {song_categories}, {song_difficulty_range.min}, {song_difficulty_range.max},
+        {artist_id}, {artist_name}, {max_other_artists}, {group_granularity},{credit_types},
         {partial_match}, {ignore_duplicates}, {max_results_per_search}
         )"""
     print(log)
