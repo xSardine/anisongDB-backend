@@ -1,4 +1,7 @@
+from .io_classes import SongType
+
 import re
+from datetime import datetime
 from typing import Any, List, Dict
 
 """
@@ -31,7 +34,7 @@ ANIME_REGEX_REPLACE_RULES = [
     {"input": "*", "replace": "[*✻＊✳︎]"},
     {
         "input": " ",
-        "replace": "( ?[²³⁵★☆♥♡\\/\\*✻✳︎＊'ˈ\-∽~〜・·\\.,;:!?@_-⇔→≒=\\+†×±◎Ө♪♣␣∞] ?| )",
+        "replace": "( ?[²³⁵★☆♥♡\\/\\*✻✳︎＊'ˈ\\-∽~〜・·\\.,;:!?@_-⇔→≒=\\+†×±◎Ө♪♣␣∞] ?| )",
     },
     {"input": "i", "replace": "([iíίɪ]|ii)"},
     {"input": "x", "replace": "[x×]"},
@@ -57,8 +60,8 @@ def escapeRegExp(str):
     """
 
     str = re.escape(str)
-    str = str.replace("\ ", " ")
-    str = str.replace("\*", "*")
+    str = str.replace(r"\ ", " ")
+    str = str.replace(r"\*", "*")
     return str
 
 
@@ -154,7 +157,7 @@ def is_ranked_time() -> bool:
     return False
 
 
-def format_song_types_to_integer(song_types):
+def format_song_types_to_integer(song_types: List[SongType]):
     """
     Format the song_types from the query to their integer mapping
 
@@ -200,7 +203,7 @@ def format_song_types_to_string(song_type: int, song_number: int) -> str:
     elif song_type == 2:
         song_type = f"Ending {song_number}"
     elif song_type == 3:
-        song_type = f"Insert Song"
+        song_type = "Insert Song"
 
     return song_type
 
@@ -312,7 +315,7 @@ def format_results(artist_database: Dict, songs: List[List[Any]]) -> Dict:
                     "ann_id": song[0],
                     "anime_jp_name": song[2] or song[1],
                     "anime_en_name": song[3] or song[1],
-                    "anime_alt_names": song[4].split("\$") if song[4] else song[4],
+                    "anime_alt_names": song[4].split(r"\$") if song[4] else song[4],
                     "anime_season": song[5],
                     "anime_type": song[6],
                     "anime_genres": [],

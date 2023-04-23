@@ -4,8 +4,8 @@
 A config file for the splitting
 """
 
-splitters = " VS | vs | & | , |, | featuring\. | Featuring\. | featuring | Featuring | feat\. | feat\.|feat\. |feat\.| FEAT. | ft\. | ft\.|ft\. |ft\.| x | × | with |＆| / |/| meets | adding | and "
-secondary_splitters = "・|& | &|&| ,|,| ×|× |×| \+ |\+"
+splitters = r" VS | vs | & | , |, | featuring\. | Featuring\. | featuring | Featuring | feat\. | feat\.|feat\. |feat\.| FEAT. | ft\. | ft\.|ft\. |ft\.| x | × | with |＆| / |/| meets | adding | and "
+secondary_splitters = r"・|& | &|&| ,|,| ×|× |×| \+ |\+"
 
 splitting_exception_list = [
     # To check
@@ -77,8 +77,7 @@ splitting_exception_list = [
         "Eri Itou to Mori no Ki Jidou Gasshou-dan",
         ("Eri Itou", "Mori no Ki Jidou Gasshou-dan"),
     ),
-    ("Naomi Tamura to Himawari Gasshou-dan",
-     ("Naomi Tamura", "Himawari Gasshou-dan")),
+    ("Naomi Tamura to Himawari Gasshou-dan", ("Naomi Tamura", "Himawari Gasshou-dan")),
     ("Osamu Yamada to Hello Nights", ("Osamu Yamada", "Hello Nights")),
     (
         "LaSalle Ishii to Kochikame Win Gasshou-dan",
@@ -98,8 +97,7 @@ splitting_exception_list = [
         "My Melodies to Maryland no Nakama-tachi",
         ("My Melodies", "Maryland no Nakama-tachi"),
     ),
-    ("Kenji Ohtsuki to Fumihiko Kitsutaka",
-     ("Kenji Ohtsuki", "Fumihiko Kitsutaka")),
+    ("Kenji Ohtsuki to Fumihiko Kitsutaka", ("Kenji Ohtsuki", "Fumihiko Kitsutaka")),
     ("Kana Ueda to Yukai na Nakama-tachi", ("Kana Ueda", "Yukai na Nakama-tachi")),
     (
         "Kenji Ohtsuki to Zetsubou Shoujo-tachi",
@@ -122,23 +120,19 @@ splitting_exception_list = [
     ),
     ("Kanako Miyamoto to Young Fresh", ("Kanako Miyamoto", "Young Fresh")),
     ("Kana Asumi to Sakebu Jigoku-tai", ("Kana Asumi", "Sakebu Jigoku-tai")),
-    ("Asuka Nishi to Yukai na Nakama-tachi",
-     ("Asuka Nishi", "Yukai na Nakama-tachi")),
+    ("Asuka Nishi to Yukai na Nakama-tachi", ("Asuka Nishi", "Yukai na Nakama-tachi")),
     ("Velvet.kodhy to Velvet.kodhy to μ to μ", ("Velvet.kodhy", "μ")),
     ("Aki Toyosaki to Cocotama Five", ("Aki Toyosaki", "Cocotama Five")),
-    ("Junji Majima to Youkai Taiji Sentai",
-     ("Junji Majima", "Youkai Taiji Sentai")),
+    ("Junji Majima to Youkai Taiji Sentai", ("Junji Majima", "Youkai Taiji Sentai")),
     ("Hajime Akira to Tsukumo-chan", ("Hajime Akira", "Tsukumo-chan")),
-    ("Hyoutei Eternity to Rikkai Young Kan",
-     ("Hyoutei Eternity", "Rikkai Young Kan")),
+    ("Hyoutei Eternity to Rikkai Young Kan", ("Hyoutei Eternity", "Rikkai Young Kan")),
     (
         "Hyoutei Setsunati to Rikkai Kai Shihan",
         ("Hyoutei Setsunati", "Rikkai Kai Shihan"),
     ),
     ("Junichi Suwabe to Sachiko Nagai", ("Junichi Suwabe", "Sachiko Nagai")),
     ("15-sai to Seiko Oomori", ("15-sai", "Seiko Oomori")),
-    ("Azusa Enoki to Yume Bouei Shoujo-tai",
-     ("Azusa Enoki", "Yume Bouei Shoujo-tai")),
+    ("Azusa Enoki to Yume Bouei Shoujo-tai", ("Azusa Enoki", "Yume Bouei Shoujo-tai")),
     ("Skirt to PUNPEE", ("Skirt", "PUNPEE")),
     # :
     ("SawanoHiroyuki[nZk]:Uru", ("SawanoHiroyuki[nZk]", "Uru")),
@@ -148,8 +142,7 @@ splitting_exception_list = [
     ),
     ("SawanoHiroyuki[nZk]:Anly", ("SawanoHiroyuki[nZk]", "Anly")),
     ("SawanoHiroyuki[nZk]:LiSA", ("SawanoHiroyuki[nZk]", "LiSA")),
-    ("SawanoHiroyuki[nZk]:Jean-Ken Johnny",
-     ("SawanoHiroyuki[nZk]", "Jean-Ken Johnny")),
+    ("SawanoHiroyuki[nZk]:Jean-Ken Johnny", ("SawanoHiroyuki[nZk]", "Jean-Ken Johnny")),
     ("SawanoHiroyuki[nZk]:Laco", ("SawanoHiroyuki[nZk]", "Laco")),
     ("SawanoHiroyuki[nZk]:ReoNa", ("SawanoHiroyuki[nZk]", "ReoNa")),
     ("SawanoHiroyuki[nZk]:mizuki", ("SawanoHiroyuki[nZk]", "mizuki")),
@@ -167,13 +160,10 @@ splitting_exception_list = [
     ("(K)NoW_NAME:AIJ", ("(K)NoW_NAME", "AIJ")),
     ("(K)NoW_NAME:eNu", ("(K)NoW_NAME", "eNu")),
     # other
-    ("FUZI × Neru (feat. Luschka & Panaman)",
-     ("FUZI", "Neru", "Luschka", "Panaman")),
-    ("FUZI × Neru (feat. Mas Kimura & MEG)",
-     ("FUZI", "Neru", "Mas Kimura", "MEG")),
+    ("FUZI × Neru (feat. Luschka & Panaman)", ("FUZI", "Neru", "Luschka", "Panaman")),
+    ("FUZI × Neru (feat. Mas Kimura & MEG)", ("FUZI", "Neru", "Mas Kimura", "MEG")),
     ("Rinko Maki AND Ichiro Mizuki", ("Rinko Maki", "Ichiro Mizuki")),
-    ("Big Gadgets ft. Aya Kamiki w TAKUYA",
-     ("Big Gadgets", "Aya Kamiki", "TAKUYA")),
+    ("Big Gadgets ft. Aya Kamiki w TAKUYA", ("Big Gadgets", "Aya Kamiki", "TAKUYA")),
     ("angela Presents/Shoko Nakagawa", ("angela", "Shoko Nakagawa")),
     (
         "Yui Makino Hikiiru Uchuu Shoujo Vanaren-tai",
@@ -306,8 +296,7 @@ splitting_exception_list = [
         ),
     ),
     ("Tim Timebomb and the Interrupters", ("Tim Timebomb and the Interrupters",)),
-    ("Yuusuke (ex. HIGH and MIGHTY COLOR)",
-     ("Yuusuke (ex. HIGH and MIGHTY COLOR)",)),
+    ("Yuusuke (ex. HIGH and MIGHTY COLOR)", ("Yuusuke (ex. HIGH and MIGHTY COLOR)",)),
     # x
     ("YABI\u00d7YABI", ("YABI\u00d7YABI",)),
     ("Chun×4", ("Chun×4",)),
@@ -408,8 +397,7 @@ splitting_exception_list = [
     ("DISH//", ("DISH//",)),
     ("ON/OFF", ("ON/OFF",)),
     ("S/mileage", ("S/mileage",)),
-    ("Konnichiwa\(^o^)/Kirarinbo☆Harry!!!",
-     ("Konnichiwa\(^o^)/Kirarinbo☆Harry!!!",)),
+    (r"Konnichiwa\(^o^)/Kirarinbo☆Harry!!!", (r"Konnichiwa\(^o^)/Kirarinbo☆Harry!!!",)),
     ("Sol/Lull BOB", ("Sol/Lull BOB",)),
     ("Kisu Koide (PANDA 1/2)", ("Kisu Koide (PANDA 1/2)",)),
     ("H-el-ical//", ("H-el-ical//",)),
@@ -418,8 +406,7 @@ splitting_exception_list = [
     ("Bach/Gounod", ("Johann Sebastian Bach/Charles Gounod",)),
     ("m-flo\u2665DOPING PANDA", ("m-flo", "DOPING PANDA")),
     # removing longer strings (removing longer string to avoid having dumb artists names)
-    ("Chihiro Yonekura (With Kaleido Stars)",
-     ("Chihiro Yonekura", "Kaleido Stars")),
+    ("Chihiro Yonekura (With Kaleido Stars)", ("Chihiro Yonekura", "Kaleido Stars")),
     ("Kevin Penkin (ft. Elspeth Bawden)", ("Kevin Penkin", "Elspeth Bawden")),
     ("livetune adding Fukase(from SEKAI NO OWARI)", ("livetune", "Fukase")),
     ("livetune adding Rin Oikawa (from Q;indivi)", ("livetune", "Rin Oikawa")),
@@ -487,8 +474,7 @@ splitting_exception_list = [
         ("Jin", "Shouichi Taguchi (Kanshou Vector)"),
     ),
     ("Aztech from Hybrid Thoughts", ("Aztech",)),
-    ("Aztech, Paranom & Kasper from Hybrid Thoughts",
-     ("Aztech", "Paranom", "Kasper")),
+    ("Aztech, Paranom & Kasper from Hybrid Thoughts", ("Aztech", "Paranom", "Kasper")),
     ("Demon Kakka×Arika Takarano (ALI PROJECT)", ("Demon Kakka", "Arika Takarano")),
     ("Takayuki Hattori Presents GUNDAM THE ORIGIN", ("Takayuki Hattori",)),
     ("Motohiro Hata meets Sakamichi no Apollon", ("Motohiro Hata",)),
@@ -532,21 +518,17 @@ splitting_exception_list = [
     ("Pokemon Kids (+Ikue Ootani)", ("Pokemon Kids", "Ikue Ootani")),
     (
         "HoneyWorks meets Sayuringo Gundan + Manatsu-san Respect Gundan from Nogizaka46",
-        ("HoneyWorks", "Sayuringo Gundan",
-         "Manatsu-san Respect Gundan", "Nogizaka46"),
+        ("HoneyWorks", "Sayuringo Gundan", "Manatsu-san Respect Gundan", "Nogizaka46"),
     ),
-    ("G-Eazy (featuring Bente Violet McPherson)",
-     ("G-Eazy", "Bente Violet McPherson")),
-    ("Masayoshi Ooishi (feat. Yukari Tamura)",
-     ("Masayoshi Ooishi", "Yukari Tamura")),
+    ("G-Eazy (featuring Bente Violet McPherson)", ("G-Eazy", "Bente Violet McPherson")),
+    ("Masayoshi Ooishi (feat. Yukari Tamura)", ("Masayoshi Ooishi", "Yukari Tamura")),
     (
         "Masayoshi Ooishi (feat. Hiroki Yasumoto)",
         ("Masayoshi Ooishi", "Hiroki Yasumoto"),
     ),
     (
         "M. Charlton-C. Cecchetto / M. Bonsanto-R. Rossi",
-        ("Malcolm Charlton", "Claudio Cecchetto",
-         "Matteo Bonsanto", "Roberto Rossi"),
+        ("Malcolm Charlton", "Claudio Cecchetto", "Matteo Bonsanto", "Roberto Rossi"),
     ),
     ("Akiko & Naoko Kobayashi", ("Akiko Kobayashi", "Naoko Kobayashi")),
     ("Kevin Penkin [feat. Emi Evans]", ("Kevin Penkin", "Emi Evans")),
@@ -581,8 +563,7 @@ splitting_exception_list = [
             "Risuko from STAR☆ANIS",
         ),
     ),
-    ("Waka・Remi from STAR☆ANIS",
-     ("Waka from STAR☆ANIS", "Remi from STAR☆ANIS")),
+    ("Waka・Remi from STAR☆ANIS", ("Waka from STAR☆ANIS", "Remi from STAR☆ANIS")),
     (
         "Waka・Fuuri・Sunao・Remi・Moe from STAR☆ANIS",
         (
@@ -609,27 +590,22 @@ splitting_exception_list = [
     ("Waka from STAR☆ANIS", ("Waka from STAR☆ANIS",)),
     ("Remi from STAR☆ANIS", ("Remi from STAR☆ANIS",)),
     ("Risuko from STAR☆ANIS", ("Risuko from STAR☆ANIS",)),
-    ("Risuko・Waka from STAR☆ANIS",
-     ("Risuko from STAR☆ANIS", "Waka from STAR☆ANIS")),
+    ("Risuko・Waka from STAR☆ANIS", ("Risuko from STAR☆ANIS", "Waka from STAR☆ANIS")),
     ("Eri from STAR☆ANIS", ("Eri from STAR☆ANIS",)),
     ("Fuuri from STAR☆ANIS", ("Fuuri from STAR☆ANIS",)),
     (
         "Risuko・Moe・Yuna from STAR☆ANIS",
         ("Risuko from STAR☆ANIS", "Moe from STAR☆ANIS", "Yuna from STAR☆ANIS"),
     ),
-    ("Sunao・Risuko from STAR☆ANIS",
-     ("Sunao from STAR☆ANIS", "Risuko from STAR☆ANIS")),
+    ("Sunao・Risuko from STAR☆ANIS", ("Sunao from STAR☆ANIS", "Risuko from STAR☆ANIS")),
     (
         "Sunao・Waka・Fuuri from STAR☆ANIS",
         ("Sunao from STAR☆ANIS", "Waka from STAR☆ANIS", "Fuuri from STAR☆ANIS"),
     ),
-    ("Waka・Fuuri from STAR☆ANIS",
-     ("Waka from STAR☆ANIS", "Fuuri from STAR☆ANIS")),
+    ("Waka・Fuuri from STAR☆ANIS", ("Waka from STAR☆ANIS", "Fuuri from STAR☆ANIS")),
     ("Sunao from STAR☆ANIS", ("Sunao from STAR☆ANIS",)),
-    ("Waka・Risuko from STAR☆ANIS",
-     ("Waka from STAR☆ANIS", "Risuko from STAR☆ANIS")),
-    ("Sunao・Yuniko from STAR☆ANIS",
-     ("Sunao from STAR☆ANIS", "Yuniko from STAR☆ANIS")),
+    ("Waka・Risuko from STAR☆ANIS", ("Waka from STAR☆ANIS", "Risuko from STAR☆ANIS")),
+    ("Sunao・Yuniko from STAR☆ANIS", ("Sunao from STAR☆ANIS", "Yuniko from STAR☆ANIS")),
     (
         "Waka・Fuuri・Sunao・Remi・Moe・Eri from STAR☆ANIS",
         (
@@ -655,8 +631,7 @@ splitting_exception_list = [
         "Risuko・Sunao・Yuna from STAR☆ANIS",
         ("Risuko from STAR☆ANIS", "Sunao from STAR☆ANIS", "Yuna from STAR☆ANIS"),
     ),
-    ("Waka・Sunao from STAR☆ANIS",
-     ("Waka from STAR☆ANIS", "Sunao from STAR☆ANIS")),
+    ("Waka・Sunao from STAR☆ANIS", ("Waka from STAR☆ANIS", "Sunao from STAR☆ANIS")),
     (
         "Waka・Fuuri・Yuna from STAR☆ANIS",
         ("Waka from STAR☆ANIS", "Fuuri from STAR☆ANIS", "Yuna from STAR☆ANIS"),
@@ -672,8 +647,7 @@ splitting_exception_list = [
     ),
     ("Eri・Waka from STAR☆ANIS", ("Eri from STAR☆ANIS", "Waka from STAR☆ANIS")),
     ("Yuna from STAR☆ANIS", ("Yuna from STAR☆ANIS",)),
-    ("Risuko・Mona from STAR☆ANIS",
-     ("Risuko from STAR☆ANIS", "Mona from STAR☆ANIS")),
+    ("Risuko・Mona from STAR☆ANIS", ("Risuko from STAR☆ANIS", "Mona from STAR☆ANIS")),
     (
         "Fuuri・Yuna・Sunao・Eri from STAR☆ANIS",
         (
@@ -693,8 +667,7 @@ splitting_exception_list = [
         ),
     ),
     ("Ruka from STAR☆ANIS", ("Ruka from STAR☆ANIS",)),
-    ("Waka・Ruka from STAR☆ANIS",
-     ("Waka from STAR☆ANIS", "Ruka from STAR☆ANIS")),
+    ("Waka・Ruka from STAR☆ANIS", ("Waka from STAR☆ANIS", "Ruka from STAR☆ANIS")),
     ("Mona from STAR☆ANIS", ("Mona from STAR☆ANIS",)),
     (
         "Waka・Fuuri・Yuna・Ruka from STAR☆ANIS",
@@ -716,10 +689,8 @@ splitting_exception_list = [
             "Eri from STAR☆ANIS",
         ),
     ),
-    ("Fuuri・Waka from STAR☆ANIS",
-     ("Fuuri from STAR☆ANIS", "Waka from STAR☆ANIS")),
-    ("Yuna・Remi from STAR☆ANIS",
-     ("Yuna from STAR☆ANIS", "Remi from STAR☆ANIS")),
+    ("Fuuri・Waka from STAR☆ANIS", ("Fuuri from STAR☆ANIS", "Waka from STAR☆ANIS")),
+    ("Yuna・Remi from STAR☆ANIS", ("Yuna from STAR☆ANIS", "Remi from STAR☆ANIS")),
     ("Remi・Eri from STAR☆ANIS", ("Remi from STAR☆ANIS", "Eri from STAR☆ANIS")),
     (
         "Waka・Risuko・Ruka from STAR☆ANIS",
@@ -842,8 +813,7 @@ splitting_exception_list = [
         "Ruka・Sena from AIKATSU☆STARS!",
         ("Ruka from AIKATSU☆STARS!", "Sena from AIKATSU☆STARS!"),
     ),
-    ("Risa/Miho from AIKATSU☆STARS!",
-     ("Risa Aizawa", "Miho from AIKATSU☆STARS!")),
+    ("Risa/Miho from AIKATSU☆STARS!", ("Risa Aizawa", "Miho from AIKATSU☆STARS!")),
     (
         "Sena・Ruka from AIKATSU☆STARS!",
         ("Sena from AIKATSU☆STARS!", "Ruka from AIKATSU☆STARS!"),

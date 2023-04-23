@@ -1,6 +1,22 @@
-import utils
-import sql_calls
-from io_classes import *
+from .io_classes import (
+    AnimeType,
+    CreditType,
+    SongCategory,
+    IntRange,
+    SongEntry,
+    CombinationLogic,
+    AnimeSearchParams,
+    ArtistSearchParams,
+    SongSearchParams,
+)
+from .utils import format_results, get_regex_search, format_song_types_to_integer
+from .sql_calls import (
+    connect_to_database,
+    extract_artist_database,
+    get_songs_ids_from_artist_ids,
+    get_possibles_songs_from_filters,
+    get_artist_ids_from_regex,
+)
 
 import re
 from typing import Any, List, Set, Tuple, Dict
@@ -301,9 +317,9 @@ def get_artists_ids_songs_list(
         List of songs fitting the search
     """
 
-    cursor = sql_calls.connect_to_database()
+    cursor = connect_to_database()
 
-    artist_database = sql_calls.extract_artist_database()
+    artist_database = extract_artist_database()
 
     for artist_id in artist_ids:
         if str(artist_id) not in artist_database:
@@ -316,11 +332,9 @@ def get_artists_ids_songs_list(
         artist_database, credit_types, artist_ids, group_granularity
     )
 
-    song_ids = sql_calls.get_songs_ids_from_artist_ids(
-        cursor, expanded_ids, credit_types
-    )
+    song_ids = get_songs_ids_from_artist_ids(cursor, expanded_ids, credit_types)
 
-    possible_songs = sql_calls.get_possibles_songs_from_filters(
+    possible_songs = get_possibles_songs_from_filters(
         cursor,
         song_ids=song_ids,
         ignore_duplicates=ignore_duplicates,
@@ -347,7 +361,7 @@ def get_artists_ids_songs_list(
         )
     ]
 
-    return utils.format_results(artist_database, filtered_songs)
+    return format_results(artist_database, filtered_songs)
 
 
 def get_artists_search_songs_list(
@@ -402,11 +416,11 @@ def get_artists_search_songs_list(
         List of songs fitting the search
     """
 
-    cursor = sql_calls.connect_to_database()
+    cursor = connect_to_database()
 
-    artist_search = utils.get_regex_search(artist_name, partial_match, swap_words=True)
+    artist_search = get_regex_search(artist_name, partial_match, swap_words=True)
 
-    artist_ids = sql_calls.get_artist_ids_from_regex(cursor, artist_search)
+    artist_ids = get_artist_ids_from_regex(cursor, artist_search)
     artist_ids = [str(artist_id) for artist_id in artist_ids]
 
     return get_artists_ids_songs_list(
@@ -456,11 +470,11 @@ def get_ann_ids_songs_list(
         List of songs fitting the search
     """
 
-    cursor = sql_calls.connect_to_database()
+    cursor = connect_to_database()
 
-    artist_database = sql_calls.extract_artist_database()
+    artist_database = extract_artist_database()
 
-    songs = sql_calls.get_possibles_songs_from_filters(
+    songs = get_possibles_songs_from_filters(
         cursor,
         ann_ids=ann_ids,
         ignore_duplicates=ignore_duplicates,
@@ -470,7 +484,7 @@ def get_ann_ids_songs_list(
         max_results_per_search=max_results_per_search,
     )
 
-    return utils.format_results(artist_database, songs)
+    return format_results(artist_database, songs)
 
 
 def get_anime_search_songs_list(
@@ -520,10 +534,10 @@ def get_anime_search_songs_list(
         List of songs fitting the search
     """
 
-    artist_database = sql_calls.extract_artist_database()
-    cursor = sql_calls.connect_to_database()
+    artist_database = extract_artist_database()
+    cursor = connect_to_database()
 
-    get_possible_songs = sql_calls.get_possibles_songs_from_filters(
+    get_possible_songs = get_possibles_songs_from_filters(
         cursor,
         ignore_duplicates=ignore_duplicates,
         song_types=song_types,
@@ -535,18 +549,18 @@ def get_anime_search_songs_list(
         anime_tags=anime_tags,
     )
 
-    anime_search = utils.get_regex_search(anime_name, partial_match, swap_words=False)
+    anime_search = get_regex_search(anime_name, partial_match, swap_words=False)
 
     output_songs = []
     for song in get_possible_songs:
         names = {song[1], song[2], song[3]}.union(
-            song[4].split("\$") if song[4] else []
+            song[4].split(r"\$") if song[4] else []
         )
 
         if any(re.match(anime_search, name.lower()) for name in names if name):
             output_songs.append(song)
 
-    return utils.format_results(artist_database, output_songs)
+    return format_results(artist_database, output_songs)
 
 
 def get_song_name_search_songs_list(
@@ -596,12 +610,12 @@ def get_song_name_search_songs_list(
         List of songs fitting the search
     """
 
-    artist_database = sql_calls.extract_artist_database()
-    song_name_regex = utils.get_regex_search(song_name, partial_match)
+    artist_database = extract_artist_database()
+    song_name_regex = get_regex_search(song_name, partial_match)
 
-    cursor = sql_calls.connect_to_database()
+    cursor = connect_to_database()
 
-    songs = sql_calls.get_possibles_songs_from_filters(
+    songs = get_possibles_songs_from_filters(
         cursor,
         song_name_regex=song_name_regex,
         ignore_duplicates=ignore_duplicates,
@@ -615,7 +629,7 @@ def get_song_name_search_songs_list(
         max_results_per_search=max_results_per_search,
     )
 
-    return utils.format_results(artist_database, songs)
+    return format_results(artist_database, songs)
 
 
 def hashable_dict(to_make_hashable_dict: Dict) -> Tuple:
@@ -710,19 +724,17 @@ def get_global_search_songs_list(
     results = []
 
     for anime_search in anime_searches:
-        anime_search.song_types = utils.format_song_types_to_integer(
-            anime_search.song_types
-        )
+        anime_search.song_types = format_song_types_to_integer(anime_search.song_types)
         results.append(get_anime_search_songs_list(**dict(anime_search)))
 
     for song_name_search in song_name_searches:
-        song_name_search.song_types = utils.format_song_types_to_integer(
+        song_name_search.song_types = format_song_types_to_integer(
             song_name_search.song_types
         )
         results.append(get_song_name_search_songs_list(**dict(song_name_search)))
 
     for artist_search in artist_searches:
-        artist_search.song_types = utils.format_song_types_to_integer(
+        artist_search.song_types = format_song_types_to_integer(
             artist_search.song_types
         )
         results.append(get_artists_search_songs_list(**dict(artist_search)))

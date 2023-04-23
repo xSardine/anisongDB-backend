@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD029 -->
+
 # Contributing Guidelines
 
 Thank you for your interest in contributing to this project! I welcome all contributions, including bug reports, feature requests, documentation improvements, and code changes.
@@ -40,18 +42,41 @@ When opening an issue:
 ## Submitting Pull Requests
 
 I welcome contributions to this repository.  
-If you want to contribute a feature or fix a bug, please follow these steps:
+Optimization to the search functions and improvement of code quality are especially welcomed.
+
+If you want to contribute a feature, improve the code or fix a bug, please create a fork :
 
 > 1. Check the [issues](https://github.com/xSardine/anisongDB-backend/issues) and [pull requests](https://github.com/xSardine/anisongDB-backend/pulls) to make sure that the feature/bug has not already been addressed, or is being worked upon.
 > 2. Fork the repository and create a new branch for your changes.
 > 3. Make the changes in your fork.
-> 4. ***Test your changes*** thoroughly to make sure they are working as expected.
-> 5. ***Add documentation*** for your changes, if applicable.
-> 6. Open a pull request to this repository.
-> 7. In the pull request description, explain the changes you have made and why they are necessary.
 
-Optimization to the search functions and improvement of code quality are especially welcomed.
+Optionally :
 
-## Code Style
+> 4. ***Add tests*** for your changes, if applicable.
+> 5. Run the ***code formatter, linter and tests***. See the [Formatting, Linting and Testing](#formatting-linting-and-testing) section for more details.
+> 6. ***Add documentation*** for your changes, if applicable.
 
-I use [black](https://pypi.org/project/black/) to format the code.
+I can take care of this for you if you want to contribute a feature or fix a bug, but you don't want to go through the hassle
+
+Open a pull request to this repository :
+
+> 7. Open a pull request to this repository.
+> 8. In the pull request description, explain the changes you have made and why they are necessary.
+
+## Formatting, Linting and Testing
+
+I use [black](https://pypi.org/project/black/) to format the code, [flake8](https://pypi.org/project/flake8/) to lint the code, and [pytest](https://pypi.org/project/pytest/) to run the tests.
+
+This repository use Poetry to manage dependencies and virtual environments. You can install all of these when running `poetry install` in the root of the repository.
+
+You can then run these within the Poetry virtual environment by running `poetry run <command>` in the root of the repository :
+
+- To format the code, run `poetry run black .`
+- To run the linter, run `poetry run flake8`
+- To run the tests, run `poetry run pytest`
+
+You can also install the related extensions for VSCode to automatically format and lint the code when you save a file.
+
+Alternatively, you can install pre-commit hooks to automatically format, lint and test the code when you commit :  
+To do so, run `poetry run pre-commit install` in the root of the repository.  
+The commit will fail if the code is not formatted, linted correctly or do not pass the tests.

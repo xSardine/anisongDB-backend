@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "anisongdb-backend"
+version = "0.1.0"
+description = "API for AnisongDB"
+authors = ["xSardine"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "^0.95.1"
+fastapi-limiter = "^0.1.5"
+python-decouple = "^3.8"
+redis = "^4.5.4"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.3.0"
+blacken-docs = "^1.13.0"
+flake8 = "^6.0.0"
+autoflake = "^2.1.1"
+pytest = "^7.3.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

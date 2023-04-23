@@ -1,6 +1,6 @@
 from __future__ import annotations
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import List, Optional
 from pydantic import BaseModel, Field, validator
 from fastapi import HTTPException
 
