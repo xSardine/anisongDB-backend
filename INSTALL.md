@@ -33,7 +33,6 @@ Then run the following commands to install the dependencies and start the applic
 
 ```shell
 poetry install
-poetry shell
 ```
 
 Configure the `.env` file if needed.
@@ -41,7 +40,7 @@ Configure the `.env` file if needed.
 Then, start the application with :
 
 ```shell
-uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+poetry run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 ## Production Environments
