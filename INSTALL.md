@@ -19,9 +19,9 @@ Once Redis is installed, start it, it will run by default on port 6379 :
 sudo service redis-server start
 ```
 
-### Local Environment
+### API Local Environment
 
-You will need to install [Python](https://www.python.org/downloads/)
+You will need [Python](https://www.python.org/downloads/)
 
 Then, install poetry :
 
@@ -29,7 +29,7 @@ Then, install poetry :
 pip install poetry
 ```  
 
-Then run the following commands to install the dependencies and start the application :
+Run the following commands to install the dependencies and start the application :
 
 ```shell
 poetry install
@@ -43,9 +43,9 @@ Then, start the application with :
 poetry run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-## Production Environments
+## API Production Environments
 
-### Docker
+### Using Docker
 
 Build your own image :
 
@@ -61,7 +61,7 @@ Then run with docker :
 docker compose --env-file .docker.env up
 ```
 
-### Gunicorn
+### Using Gunicorn
 
 Install dependencies and configure the `.env` file similarly to local environment.  
 Then run directly using gunicorn :
