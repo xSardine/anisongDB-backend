@@ -8,43 +8,40 @@ from typing import Any, List, Dict
 A collection of useful functions
 """
 
-ANIME_REGEX_REPLACE_RULES = [
-    {"input": "ļ", "replace": "[ļĻ]"},
-    {"input": "l", "replace": "[l˥ļĻ]"},
-    {"input": "ź", "replace": "[źŹ]"},
-    {"input": "z", "replace": "[zźŹ]"},
-    {"input": "ou", "replace": "(ou|ō|o)"},
-    {"input": "oo", "replace": "(oo|ō|o)"},
-    {"input": "oh", "replace": "(oh|ō|o)"},
-    {"input": "wo", "replace": "(wo|o)"},
-    {"input": "o", "replace": "([oōóòöôøӨΦο]|ou|oo|oh|wo)"},
-    {"input": "uu", "replace": "(uu|u|ū)"},
-    {"input": "u", "replace": "([uūûúùüǖμ]|uu)"},
-    {"input": "aa", "replace": "(aa|a)"},
-    {"input": "ae", "replace": "(ae|æ)"},
-    {"input": "a", "replace": "([aäãά@âàáạåæā∀Λ]|aa)"},
-    {"input": "c", "replace": "[cςč℃]"},
-    {"input": "e", "replace": "[eəéêёëèæē]"},
-    {"input": "'", "replace": "['’ˈ]"},
-    {"input": "n", "replace": "[nñ]"},
-    {"input": "0", "replace": "[0Ө]"},
-    {"input": "2", "replace": "[2²]"},
-    {"input": "3", "replace": "[3³]"},
-    {"input": "5", "replace": "[5⁵]"},
-    {"input": "*", "replace": "[*✻＊✳︎]"},
-    {
-        "input": " ",
-        "replace": "( ?[²³⁵★☆♥♡\\/\\*✻✳︎＊'ˈ\\-∽~〜・·\\.,;:!?@_-⇔→≒=\\+†×±◎Ө♪♣␣∞] ?| )",
-    },
-    {"input": "i", "replace": "([iíίɪ]|ii)"},
-    {"input": "x", "replace": "[x×]"},
-    {"input": "b", "replace": "[bßβ]"},
-    {"input": "r", "replace": "[rЯ]"},
-    {"input": "s", "replace": "[sς]"},
-]
+ANIME_REGEX_REPLACE_RULES = {
+    "ļ": "[ļĻ]",
+    "l": "[l˥ļĻ]",
+    "ź": "[źŹ]",
+    "z": "[zźŹ]",
+    "ou": "(ou|ō|o)",
+    "oo": "(oo|ō|o)",
+    "oh": "(oh|ō|o)",
+    "wo": "(wo|o)",
+    "o": "([oōóòöôøӨΦοδ]|ou|oo|oh|wo)",
+    "uu": "(uu|u|ū)",
+    "u": "([uūûúùüǖμ]|uu)",
+    "aa": "(aa|a)",
+    "ae": "(ae|æ)",
+    "a": "([aäãά@âàáạåæā∀Λ]|aa)",
+    "c": "[cςč℃]",
+    "e": "[eəéêёëèæē]",
+    "'": "['’ˈ]",
+    "n": "[nñ]",
+    "0": "[0Ө]",
+    "2": "[2²]",
+    "3": "[3³]",
+    "5": "[5⁵]",
+    "*": "[*✻＊✳︎]",
+    " ": "([^a-zA-Z0-9])",
+    "i": "([iíίɪ]|ii)",
+    "x": "[x×]",
+    "b": "[bßβ]",
+    "r": "[rЯ]",
+    "s": "[sς]",
+}
 
 
-def escapeRegExp(str):
+def escape_regex(search_string: str) -> str:
     """
     Escape the string to be used in a regex
 
@@ -59,13 +56,10 @@ def escapeRegExp(str):
         The escaped string
     """
 
-    str = re.escape(str)
-    str = str.replace(r"\ ", " ")
-    str = str.replace(r"\*", "*")
-    return str
+    return re.escape(search_string).replace(r"\ ", " ").replace(r"\*", "*")
 
 
-def apply_regex_rules(search):
+def apply_regex_rules(search_string: str) -> str:
     """
     Apply the regex rules in ANIME_REGEX_REPLACE_RULES to the search string
 
@@ -80,18 +74,20 @@ def apply_regex_rules(search):
         The string with the rules applied
     """
 
-    for rule in ANIME_REGEX_REPLACE_RULES:
-        search = search.replace(rule["input"], rule["replace"])
-    return search
+    for rule, replacement in ANIME_REGEX_REPLACE_RULES.items():
+        search_string = search_string.replace(rule, replacement)
+    return search_string
 
 
-def get_regex_search(og_search, partial_match=True, swap_words=True):
+def get_regex_search(
+    search_string: str, partial_match: bool = True, swap_words: bool = True
+) -> str:
     """
     Get the regex search string from the search string
 
     Parameters
     ----------
-    og_search : str
+    search_string : str
         The search string
     partial_match : bool, optional
         Whether to allow partial matches, by default True
@@ -104,22 +100,16 @@ def get_regex_search(og_search, partial_match=True, swap_words=True):
         The regex search string
     """
 
-    og_search = escapeRegExp(og_search.lower())
-    search = apply_regex_rules(og_search)
-    search = "^" + search + "$" if not partial_match else ".*" + search + ".*"
+    search_string = escape_regex(search_string.lower())
+    search_regex = apply_regex_rules(search_string)
+    search_regex = f"^{search_regex}$" if not partial_match else f".*{search_regex}.*"
 
-    if swap_words:
-        alt_search = og_search.split(" ")
-        if len(alt_search) == 2:
-            alt_search = " ".join([alt_search[1], alt_search[0]])
-            alt_search = apply_regex_rules(alt_search)
-            alt_search = (
-                "^" + alt_search + "$"
-                if not partial_match
-                else ".*" + alt_search + ".*"
-            )
-            search = f"({search})|({alt_search})"
-    return search
+    if swap_words and len(search_string.split()) == 2:
+        alt_regex = apply_regex_rules(" ".join(reversed(search_string.split())))
+        alt_regex = f"^{alt_regex}$" if not partial_match else f".*{alt_regex}.*"
+        search_regex = f"({search_regex})|({alt_regex})"
+
+    return search_regex
 
 
 def is_ranked_time() -> bool:
