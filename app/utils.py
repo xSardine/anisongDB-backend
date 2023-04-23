@@ -1,7 +1,8 @@
 from .io_classes import SongType
 
 import re
-from datetime import datetime
+from pytz import timezone
+from datetime import datetime, timedelta
 from typing import Any, List, Dict
 
 """
@@ -112,9 +113,22 @@ def get_regex_search(
     return search_regex
 
 
-def is_ranked_time() -> bool:
+def is_ranked_time(
+    utc_datetime_now: datetime.utcnow().time(), ranked_length: int = 58
+) -> bool:
     """
-    Returns true if it is ranked time
+    Returns true if it is ranked time :
+    Ranked time occurs at these timestamps :
+    19:30 - 20:28 CET
+    19:30 - 20:28 JST
+    19:30 - 20:28 CST
+
+    Parameters
+    ----------
+    utc_now : datetime, optional
+        The current UTC time, by default datetime.utcnow()
+    ranked_length : int, optional
+        The length of ranked time in minutes, by default 58
 
     Returns
     -------
@@ -122,29 +136,24 @@ def is_ranked_time() -> bool:
         If it is ranked time
     """
 
-    return False
+    cet_tz = timezone("CET")
+    cst_tz = timezone("America/Chicago")
+    jst_tz = timezone("Japan")
 
-    date = datetime.utcnow()
-    # If ranked time UTC
-    if (
-        # CST
-        (
-            (date.hour == 1 and date.minute >= 30)
-            or (date.hour == 2 and date.minute < 28)
-        )
-        # JST
-        or (
-            (date.hour == 11 and date.minute >= 30)
-            or (date.hour == 12 and date.minute < 28)
-        )
-        # CET
-        or (
-            (date.hour == 18 and date.minute >= 30)
-            or (date.hour == 19 and date.minute < 28)
-        )
-    ):
-        return True
-    return False
+    cet_time = utc_datetime_now.astimezone(cet_tz).time()
+    cst_time = utc_datetime_now.astimezone(cst_tz).time()
+    jst_time = utc_datetime_now.astimezone(jst_tz).time()
+
+    start_time = datetime(
+        utc_datetime_now.year, utc_datetime_now.month, utc_datetime_now.day, 20, 30
+    )
+    end_time = start_time + timedelta(minutes=ranked_length)
+
+    return (
+        start_time.time() <= cet_time <= end_time.time()
+        or start_time.time() <= cst_time <= end_time.time()
+        or start_time.time() <= jst_time <= end_time.time()
+    )
 
 
 def format_song_types_to_integer(song_types: List[SongType]):

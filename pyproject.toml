@@ -12,6 +12,7 @@ fastapi = "^0.95.1"
 fastapi-limiter = "^0.1.5"
 python-decouple = "^3.8"
 redis = "^4.5.4"
+pytz = "^2023.3"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.3.0"
