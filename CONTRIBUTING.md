@@ -8,12 +8,14 @@ To ensure that your contributions can be processed quickly and easily, please fo
 
 ## Reporting Issues in the database
 
-Reminder that I am merely building upon an existing work, and I won't fix any aspects of the database that are directly maintained by AMQ mods. This saves me a large amount of work, and it ensures my database is always in sync with the AMQ database, which I hope will allow it to be used in AMQ in the future.
+Reminder that I am merely building upon an existing work, and I won't fix any aspects of the database that are directly maintained by AMQ mods.  
+This saves me a large amount of work, and it ensures my database is always in sync with the AMQ database, which I hope will allow it to be used in AMQ in the future.  
 ~~This is also why if you check the AMQ Discord, you will see an infinite amount of requests I've made to fix stuff on the AMQ database~~
 
 What `I will` fix :
 
 > - Missing `group members`
+> - Missing `backing vocals` (e.g. "MON" in "Smith with MON", which is mostly "Smith" singing and "MON" doing the backing vocals)
 > - Missing `performers`, aka people who plays the instruments and are famous for it (which are a WIP, so there are a lot of missing ones) (e.g. Lupintic Six, Yoshida Brothers, etc...)
 > - Missing `composers, arrangers` (which are a WIP, so there are a lot of missing ones)
 > - Two `people with the exact same name` and are considered the same person in the database (e.g. Minami from DomexKano and Minami [Kuribayashi])
@@ -53,10 +55,10 @@ If you want to contribute a feature, improve the code or fix a bug, please creat
 Optionally :
 
 > 4. ***Add tests*** for your changes, if applicable.
-> 5. Run the ***code formatter, linter and tests***. See the [Formatting, Linting and Testing](#formatting-linting-and-testing) section for more details.
-> 6. ***Add documentation*** for your changes, if applicable.
+> 5. ***Add documentation*** for your changes, if applicable.
+> 6. Run the ***code formatter, linter and tests***. See the [Formatting, Linting and Testing](#formatting-linting-and-testing) section for more details.
 
-I can take care of this for you if you want to contribute a feature or fix a bug, but you don't want to go through the hassle
+I can take care of this for you if you want to contribute a feature or fix a bug, but don't want to go through the hassle
 
 Open a pull request to this repository :
 
@@ -65,18 +67,20 @@ Open a pull request to this repository :
 
 ## Formatting, Linting and Testing
 
-I use [black](https://pypi.org/project/black/) to format the code, [flake8](https://pypi.org/project/flake8/) to lint the code, and [pytest](https://pypi.org/project/pytest/) to run the tests.
+I use [black](https://pypi.org/project/black/) to format the code, [flake8](https://pypi.org/project/flake8/) to lint the code, and [pytest](https://pypi.org/project/pytest/) to run the tests.  
+The file `.flake8` contain the configuration for flake8, which makes it compatible with black.
 
-This repository use Poetry to manage dependencies and virtual environments. You can install all of these when running `poetry install` in the root of the repository.
+This repository use Poetry to manage dependencies and virtual environments.  
+You can install all of these when running `poetry install` in the root of the repository.
 
 You can then run these within the Poetry virtual environment by running `poetry run <command>` in the root of the repository :
 
-- To format the code, run `poetry run black .`
-- To run the linter, run `poetry run flake8`
-- To run the tests, run `poetry run pytest`
-
-You can also install the related extensions for VSCode to automatically format and lint the code when you save a file.
+- `poetry run black .` to format the code
+- `poetry run flake8` to run the linter
+- `poetry run pytest` to run the tests
 
 Alternatively, you can install pre-commit hooks to automatically format, lint and test the code when you commit :  
 To do so, run `poetry run pre-commit install` in the root of the repository.  
 The commit will fail if the code is not formatted, linted correctly or do not pass the tests.
+
+If you are using VSCode, you can also install the related extensions to automatically format and lint the code when you save a file.
